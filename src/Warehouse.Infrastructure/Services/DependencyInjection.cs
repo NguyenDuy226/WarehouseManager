@@ -29,6 +29,8 @@ namespace Warehouse.Infrastructure.Services
             services.AddScoped<ISupplierService, SupplierService>();
             services.AddScoped<IUnitOfMeasureService, UnitOfMeasureService>();
             services.AddScoped<IWarehouseService, WarehouseService>();
+            services.AddScoped<IBaseDocumentService, BaseDocumentService>();
+            services.AddScoped<IOpeningDocumentService, OpeningDocumentService>();
             return services;
         }
     }

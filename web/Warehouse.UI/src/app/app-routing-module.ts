@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './Guards/auth-guard';
 import { RoleGuard } from './Guards/role-guard';
 import { SideBar } from './Components/side-bar/side-bar';
+import { PermisstionGuard } from './Guards/permission-guard-guard';
 
 const routes: Routes = [
   {
@@ -36,6 +37,7 @@ const routes: Routes = [
       },
       {
         path: 'warehouse/:id',
+        canActivate:[RoleGuard, PermisstionGuard],
         loadComponent: () => import('./Components/warehouse-detail/warehouse-detail').then(m=> m.WarehouseDetail)
       },
       {
@@ -58,7 +60,7 @@ const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: 'dashboard'    
+    redirectTo: 'dashboard/page/1'    
   },
 ];
 

@@ -44,7 +44,7 @@ public class AuthService
 
         _context.AuthAuditLogs.Add(log);
     }
-    //login
+
     public async Task<(int StatusCode, string? ErrorMessage, LoginResponseDTO? Data)> LoginAsync(LoginDTO dto)
     {
         const string errorMessage = "email or pass wrong";
@@ -85,7 +85,7 @@ public class AuthService
         await _context.SaveChangesAsync();
         return (200, null, new LoginResponseDTO(token, refreshToken));
     }
-    //refresh token
+
     public async Task<(int StatusCode, string? ErrorMessage, AuthResponseDTO? Data)> RefreshAsync(RefreshTokenDTO dto)
     {
         try
@@ -100,12 +100,20 @@ public class AuthService
             if (user == null || !user.IsActive)
                 return (400, "Invalid user", null);
 
+            //sercurity stamp
+            var oldTokenStamp = prin.FindFirst("AspNet.Identity.SecurityStamp")?.Value;
+            if (string.IsNullOrEmpty(oldTokenStamp) || oldTokenStamp != user.SecurityStamp)
+            {
+                return (401, "role has changed", null);
+            }
+
             var tempRefreshToken = await _context.RefreshTokens
                 .FirstOrDefaultAsync(t => t.RefreshTokenValue == dto.RefreshToken && t.AppUserId == userId);
 
             if (tempRefreshToken == null) 
                 return (401, "Invalid token", null);
-            //remove token
+                
+            //remove refresh token
             if (tempRefreshToken.IsRemoved)
             {
                 var activeTokens = await _context.RefreshTokens.Where(t => t.AppUserId == userId).ToListAsync();
@@ -114,11 +122,11 @@ public class AuthService
                 await AddAuthAudit(userId, "TOKEN_REUSE_DETECTED");
                 await _context.SaveChangesAsync();
 
-                return (401, "please try again", null);
+                return (401, "plis try again", null);
             }
 
             if (tempRefreshToken.IsExpired) 
-                return (401, "Token expired", null);
+                return (401, "token expired", null);
 
             tempRefreshToken.IsRemoved = true; 
             var newToken = await _createToken.CreateJWT(user);
@@ -134,7 +142,7 @@ public class AuthService
             return (400, $"Refresh token failed: {ex.Message}", null);
         }
     }
-    //logout
+
     public async Task<(int StatusCode, string? ErrorMessage)> LogoutAsync()
     {
         var userIdString = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier)?? null;
@@ -156,7 +164,7 @@ public class AuthService
 
         return (200, null);
     }
-    //change pass
+
     public async Task<(int StatusCode, string? ErrorMessage)> ChangePasswordAsync(Guid userId, ChangePasswordDTO dto)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -206,7 +214,7 @@ public class AuthService
 
         return (200, null);
     }
-    //register  
+
     public async Task<(int StatusCode, string? ErrorMessage, object? Errors)> RegisterAsync(RegisterDTO dto)
     {
         var user = new AppUser()

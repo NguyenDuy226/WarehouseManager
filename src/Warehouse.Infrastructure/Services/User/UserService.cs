@@ -5,6 +5,7 @@ using Warehouse.Infrastructure.Data;
 using Warehouse.Application.DTO.User;
 using Warehouse.Application.DTO.Paging;
 using System.Security.Claims;
+using Warehouse.Application.DTO;
 
 namespace Warehouse.Application.Services
 {
@@ -43,12 +44,6 @@ namespace Warehouse.Application.Services
                 return (403, new { message = "only admin can set role to manager" });
             }
 
-            var isAdmin = currentUser.IsInRole("SYSTEM_ADMIN");
-            if (!isAdmin && (roleDTO.Role == "SYSTEM_ADMIN" || roleDTO.Role == "WAREHOUSE_MANAGER"))
-            {
-                return (403, new { message = "only admin can do this" });
-            }
-
             var role = await _roleManager.FindByNameAsync(roleDTO.Role);
             if (role == null) return (404, new { message = "role not found" });
 
@@ -60,7 +55,7 @@ namespace Warehouse.Application.Services
 
             var result = await _userManager.AddToRoleAsync(user, roleDTO.Role);
             if (!result.Succeeded) return (500, new { message = "set role error" });
-
+            await _userManager.UpdateSecurityStampAsync(user);
             return (200, new { message = "role updated success" });
         }
 
@@ -79,20 +74,10 @@ namespace Warehouse.Application.Services
                 return (400, new { message = "invalid role for warehouse" });
             }
             var warehouses = dto.Select(d => d.WarehouseId).ToList();
-            if (warehouses.Any())
-            {
-                var warehouseGuids = warehouses.Select(Guid.Parse).ToList();
-                var validWarehousesCount = await _context.WarehouseEntities
-                    .CountAsync(w => warehouseGuids.Contains(w.Id));
-                if (validWarehousesCount != warehouses.Count)
-                {
-                    return (400, new { message = "warehouse do not exist" });
-                }
-            }
+
             var existPer = await _context.WarehousePermissions
                 .Where(t => t.UserId == userId)
                 .ToListAsync();
-
             foreach (var item in existPer)
             {
                 if (warehouses.Contains(item.WarehouseId))
@@ -114,10 +99,10 @@ namespace Warehouse.Application.Services
                     WarehouseId = id,
                     IsRemoved = false
                 });
-
                 await _context.WarehousePermissions.AddRangeAsync(newPer);
             }
             await _context.SaveChangesAsync();
+            
             return (200, new { message = "warehouse assign successful" });
         }
 
@@ -128,9 +113,8 @@ namespace Warehouse.Application.Services
             {
                 return (404, new { message = "Warehouse not found" });
             }
-            var userIds = dto.Select(d => d.UserId).Distinct().ToList(); 
-            var allowedRoles = new List<string> { "SYSTEM_ADMIN", "WAREHOUSE_MANAGER", "WAREHOUSE_CLERK", "APPROVER", "REQUESTER", "AUDITOR" };
-            
+            var userIds = dto.Select(d => d.UserId).ToList();
+            var allowedRoles = new List<string> { "SYSTEM_ADMIN", "WAREHOUSE_MANAGER", "WAREHOUSE_CLERK", "APPROVER", "REQUESTER", "AUDITOR", "USER" };
             if (userIds.Any())
             {
                 var usersToCheck = await _context.Users
@@ -141,10 +125,10 @@ namespace Warehouse.Application.Services
                         u.IsActive
                     })
                     .ToListAsync();
-                if (usersToCheck.Any(u => u.IsActive == false)) 
-                {
-                    return (400, new { message = "user is not active" });
-                }
+                // if (usersToCheck.Any(u => u.IsActive == false)) 
+                // {
+                //     return (400, new { message = "user is not active" });
+                // }
                 var invalidUsersCount = await _context.Users
                     .Where(u => userIds.Contains(u.Id))
                     .Where(u => _context.UserRoles
@@ -187,17 +171,15 @@ namespace Warehouse.Application.Services
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user == null) return (404, new { message = "user not found" });
-
             if (!await AuthCheck(user, currentUser))
             {
                 return (403, new { message = "only admin can do this" });
             }
-
             user.Name = dto.Name;
             user.IsActive = dto.IsActive;
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded) return (500, new { message = "update user error" });
-
+            await _userManager.UpdateSecurityStampAsync(user);
             return (200, new { message = "user updated" });
         }
 
@@ -205,7 +187,6 @@ namespace Warehouse.Application.Services
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user == null) return (404, new { message = "user not found" });
-
             if (!await AuthCheck(user, currentUser))
             {
                 return (403, new { message = "only admin can do this" });
@@ -213,6 +194,7 @@ namespace Warehouse.Application.Services
             user.IsActive = false;
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded) return (500, new { message = "delete user error" });
+            await _userManager.UpdateSecurityStampAsync(user);
             return (200, new { message = "user delete successful" });
         }
 
@@ -303,23 +285,14 @@ namespace Warehouse.Application.Services
 
         public async Task<PagedResult<UserDTO>> GetValidUserAsync(PagingRequest request)
         {
-            var query = _userManager.Users.AsQueryable();
-            query = query.Where(u => u.IsActive == true);
-            var allowedRoles = new List<string> {"WAREHOUSE_MANAGER", "WAREHOUSE_CLERK", "APPROVER", "REQUESTER", "AUDITOR" };
-            var userRoleId = await _roleManager.Roles
-                .Where(r => (r.Name ?? "").ToUpper() == "USER")
-                .Select(r => r.Id)
-                .FirstOrDefaultAsync();
-            var allowedRoleIds = await _roleManager.Roles
-                .Where(r => allowedRoles.Contains(r.Name ?? ""))
-                .Select(r => r.Id)
-                .ToListAsync();
-            query = query.Where(u => !_context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == userRoleId) && _context.UserRoles.Any(ur => ur.UserId == u.Id && allowedRoleIds.Contains(ur.RoleId))
-            );
+            //not user and admin
+            var allowedRoles = new[] {"WAREHOUSE_MANAGER", "WAREHOUSE_CLERK", "APPROVER", "REQUESTER", "AUDITOR", "USER"};
+            var query = _userManager.Users.Where(u =>_context.UserRoles.Any(ur => ur.UserId == u.Id 
+                                                    && _context.Roles.Any(r =>r.Id == ur.RoleId && allowedRoles.Contains(r.Name!))));
             //search, sort
             if (!string.IsNullOrWhiteSpace(request.Keyword))
             {
-                var keyword = request.Keyword.Trim().ToLower(); 
+                var keyword = request.Keyword.Trim().ToLower();
                 query = query.Where(u =>
                     (u.Name != null && u.Name.ToLower().Contains(keyword)) ||
                     (u.Email != null && u.Email.ToLower().Contains(keyword)) ||
@@ -327,14 +300,10 @@ namespace Warehouse.Application.Services
                     (u.Code != null && u.Code.ToLower().Contains(keyword))
                 );
             }
-            if (!string.IsNullOrWhiteSpace(request.SortDirection) && request.SortDirection.ToLower() == "asc")
-            {
-                query = query.OrderBy(u => u.CreatedAt);
-            }
-            else
-            {
-                query = query.OrderByDescending(u => u.CreatedAt);
-            }
+            query = request.SortDirection?.ToLower() == "asc"
+                ? query.OrderBy(u => u.CreatedAt)
+                : query.OrderByDescending(u => u.CreatedAt);
+
             //paging
             var totalCount = await query.CountAsync();
             var users = await query
@@ -346,12 +315,20 @@ namespace Warehouse.Application.Services
                 from ur in _context.UserRoles
                 join r in _context.Roles on ur.RoleId equals r.Id
                 where userIds.Contains(ur.UserId)
-                select new { ur.UserId, RoleName = r.Name }
+                select new
+                {
+                    ur.UserId,
+                    RoleName = r.Name,
+                
+                }
             ).ToListAsync();
-
             var userRolesDict = userRolesMapping
                 .GroupBy(x => x.UserId)
-                .ToDictionary(g => g.Key, g => g.Select(x => x.RoleName).ToList());
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.RoleName).ToList()
+                );
+
             var items = users.Select(u => new UserDTO
             {
                 Id = u.Id,
@@ -361,8 +338,9 @@ namespace Warehouse.Application.Services
                 Name = u.Name ?? string.Empty,
                 IsActive = u.IsActive,
                 CreatedAt = u.CreatedAt,
-                Roles = userRolesDict.ContainsKey(u.Id) ? userRolesDict[u.Id] : new List<string>()
+                Roles = userRolesDict.GetValueOrDefault(u.Id) ?? new List<string>()
             }).ToList();
+
             return new PagedResult<UserDTO>
             {
                 Items = items,
@@ -371,7 +349,7 @@ namespace Warehouse.Application.Services
                 PageSize = request.PageSize
             };
         }
-        
+            
         public async Task<UserDTO?> GetByIdAsync(Guid id)
         {
             var item = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == id);
@@ -396,6 +374,7 @@ namespace Warehouse.Application.Services
                 .Select(wp => wp.WarehouseId)
                 .ToListAsync();
         }
+        
         public async Task<List<string>> GetWarehouUsersAsync(Guid warehouseId)
         {
             return await _context.WarehousePermissions
@@ -404,6 +383,5 @@ namespace Warehouse.Application.Services
                 .ToListAsync();
         }
                 
-    
     }
 }

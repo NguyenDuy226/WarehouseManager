@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Warehouse.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Warehouse.Infrastructure.Data;
 namespace Warehouse.Infrastructure.Migrations
 {
     [DbContext(typeof(WarehouseDbContext))]
-    partial class WarehouseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260821024828_AddStock")]
+    partial class AddStock
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -276,6 +279,9 @@ namespace Warehouse.Infrastructure.Migrations
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsRemoved")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Note")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -512,6 +518,9 @@ namespace Warehouse.Infrastructure.Migrations
                     b.Property<Guid>("MaterialId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsRemoved")
+                        .HasColumnType("boolean");
+
                     b.Property<decimal>("MovingAveragePrice")
                         .HasColumnType("numeric(20,4)");
 
@@ -522,9 +531,6 @@ namespace Warehouse.Infrastructure.Migrations
 
                     b.Property<decimal>("TotalQuantity")
                         .HasColumnType("numeric(18,4)");
-
-                    b.Property<decimal>("TotalValue")
-                        .HasColumnType("numeric");
 
                     b.HasKey("WarehouseId", "MaterialId");
 
@@ -542,15 +548,14 @@ namespace Warehouse.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRemoved")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
-
-                    b.Property<Guid?>("ToWarehouseId")
-                        .HasColumnType("uuid");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
@@ -600,11 +605,11 @@ namespace Warehouse.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("BalanceAfter")
-                        .HasColumnType("numeric");
-
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("IsRemoved")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("MaterialId")
                         .HasColumnType("uuid");
@@ -614,9 +619,6 @@ namespace Warehouse.Infrastructure.Migrations
 
                     b.Property<DateTime>("MovementTime")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("numeric");
 
                     b.Property<Guid>("WarehouseId")
                         .HasColumnType("uuid");

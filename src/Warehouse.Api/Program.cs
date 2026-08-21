@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Warehouse.Infrastructure.Services.Warehouse;
 using Warehouse.Application.Interfaces;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -84,7 +85,6 @@ builder.Services.AddRateLimiter(options =>
         opt.QueueLimit = 0;
     });
 });
-// ... sau đó áp dụng vào Controller
 
 //Role seeder
 builder.Services.AddScoped<DbSeeder>();
@@ -112,9 +112,34 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["JWT:Audience"],
         IssuerSigningKey = key,
         ClockSkew = TimeSpan.Zero
-
     };
+   options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppUser>>();
+            var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+            var tokenStamp = context.Principal?.FindFirstValue("AspNet.Identity.SecurityStamp");
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(tokenStamp))
+            {
+                context.Fail("invalid token");
+                return;
+            }
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null || !user.IsActive) 
+            {
+                context.Fail("account locked");
+                return;
+            }
+            if (user == null || user.SecurityStamp != tokenStamp)
+            {
+                context.Fail("token is changed");
+            }
+        }
+    };
+
 });
+
 builder.Services.AddAuthorization();
 //Add service
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
@@ -140,6 +165,8 @@ app.UseMiddleware<CorrelationIdMiddleware> ();
 app.UseMiddleware<ExceptionHandlingMiddleware> ();
 
 app.UseHttpsRedirection();
+app.UseAuthentication(); 
+app.UseAuthorization();
 app.MapControllers();
 app.Run();
 

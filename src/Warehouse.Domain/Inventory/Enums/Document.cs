@@ -1,0 +1,6 @@
+public enum DocumentStatus { 
+    DRAFT, PENDING_APPROVAL, POSTED, REJECTED, CANCELED 
+}
+public enum DocumentType { 
+    OPENING, RECEIPT, ISSUE, TRANSFER, ADJUSTMENT, REVERSAL
+}

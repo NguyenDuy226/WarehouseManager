@@ -27,13 +27,15 @@ namespace ExpenseTracker.API.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_iconfiguration["JWT:Key"]?? string.Empty));
             var cred = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var roles = await _userManager.GetRolesAsync(user);
+            var securityStamp = await _userManager.GetSecurityStampAsync(user);
             var claims = new List<Claim>()
             {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new(ClaimTypes.Name, user.Name ?? string.Empty),
-                new(ClaimTypes.Email, user.Email ?? string.Empty)
+                new(ClaimTypes.Email, user.Email ?? string.Empty),
+                new Claim("AspNet.Identity.SecurityStamp", securityStamp)
             };
             foreach (var role in roles)
             {

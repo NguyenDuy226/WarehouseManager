@@ -14,7 +14,7 @@ namespace Warehouse.Infrastructure.Services
             { typeof(MaterialCategory), ("MaterialCategoryCodeSeq", "MC-") },
             { typeof(Supplier), ("SupplierCodeSeq", "SP-") },
             { typeof(UnitOfMeasure), ("UnitOfMeasureCodeSeq", "UN-") },
-            { typeof(AppUser), ("UserCodeSeq", "US-") }
+            { typeof(AppUser), ("UserCodeSeq", "US-") },
         };
 
         public CodeGenerator(WarehouseDbContext context)
@@ -41,5 +41,23 @@ namespace Warehouse.Infrastructure.Services
 
             return $"{prefix}{nextValue.ToString().PadLeft(numberLength, '0')}";
         }
+    
+        public async Task<string> GenerateDocumentCode(DocumentType type, string warehouseCode, int numberLength = 6)
+        {
+            string sequenceName = "StockDocumentSeq";
+            string currentYear = DateTime.UtcNow.Year.ToString();
+            string typeString = type.ToString(); 
+
+            var connection = _context.Database.GetDbConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = $"SELECT nextval('\"{sequenceName}\"')";            
+
+            if (connection.State != System.Data.ConnectionState.Open)
+                await connection.OpenAsync();
+            var nextValue = (long)(await command.ExecuteScalarAsync())!;
+
+            return $"{typeString}-{warehouseCode}-{currentYear}-{nextValue.ToString().PadLeft(numberLength, '0')}";
+        }
+        
     }
 }

@@ -8,7 +8,7 @@ namespace Warehouse.Api.Controllers
 {
     [ApiController]
     [Route("api/users")]
-    [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+    [Authorize(Roles = "SYSTEM_ADMIN, WAREHOUSE_MANAGER")]
     public class UserController : ControllerBase
     {
         private readonly UserService _userService;
