@@ -1,54 +1,62 @@
-import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterModule, RouterOutlet } from '@angular/router';
-import { AuthService } from '../../Services/auth-service';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs';
+import { AuthService } from '../../Services/Auth Service/auth-service';
 
 @Component({
   selector: 'app-side-bar',
   standalone: true,
   templateUrl: './side-bar.html',
   styleUrl: './side-bar.css',
-  imports: [RouterOutlet, ReactiveFormsModule, CommonModule,FormsModule, RouterModule],
+  imports: [RouterOutlet, ReactiveFormsModule, CommonModule, FormsModule, RouterModule],
 })
-export class SideBar {
+export class SideBar implements OnInit {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  isOpen : boolean = true;
+  isOpen: boolean = true;
   isAdminOrManager: boolean = false;
   currentUrl = '';
+  userId: string | null = null;
+  userName: string | null = null;
 
   ngOnInit(): void {
+    this.userId = this.authService.getUserIdFromToken();
+    this.userName = this.authService.getUserNameFromToken();
     this.checkUserRole();
     this.currentUrl = this.router.url;
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
-      )
-      .subscribe((event: any) => {
-        this.currentUrl = event.urlAfterRedirects; 
-        this.cdr.detectChanges();
+    )
+    .subscribe((event: any) => {
+      this.currentUrl = event.urlAfterRedirects; 
+      this.cdr.detectChanges();
     });
-
   }
-  changeSideBar (){
+
+  changeSideBar() {
     this.isOpen = !this.isOpen;
   }
 
-  logOut(){
+  logOut() {
     this.authService.logout().subscribe();
   }
+
   private checkUserRole(): void {
     var role = this.authService.getRoleFromToken();
-    if(role === 'SYSTEM_ADMIN' || role === 'WAREHOUSE_MANAGER') this.isAdminOrManager = true;
-    else this.isAdminOrManager = false;
-
+    if (role === 'SYSTEM_ADMIN' || role === 'WAREHOUSE_MANAGER') {
+      this.isAdminOrManager = true;
+    } 
+    else {
+      this.isAdminOrManager = false;
+    }
   }
+
   checkActive(route: string): boolean {
     return this.currentUrl.includes(route);  
   }
-
 
 }

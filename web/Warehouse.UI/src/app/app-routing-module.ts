@@ -36,9 +36,28 @@ const routes: Routes = [
         loadComponent: () => import('./Components/dash-board/dash-board').then(m => m.DashBoard) 
       },
       {
+        path: 'documents/page/:page',
+        canActivate: [RoleGuard],
+        data: {
+          expectedRoles: ['SYSTEM_ADMIN', 'WAREHOUSE_MANAGER', 'WAREHOUSE_CLERK', 'APPROVER', 'REQUESTER', 'AUDITOR'] 
+        },
+        loadComponent: () => import('./Components/documents/documents').then(m => m.Documents)
+      },
+      {
         path: 'warehouse/:id',
         canActivate:[RoleGuard, PermisstionGuard],
+        data:{
+          expectedRoles: ['SYSTEM_ADMIN', 'WAREHOUSE_MANAGER', 'WAREHOUSE_CLERK', 'APPROVER', 'REQUESTER', 'AUDITOR'] 
+        },
         loadComponent: () => import('./Components/warehouse-detail/warehouse-detail').then(m=> m.WarehouseDetail)
+      },
+      {
+        path: 'profile/:id',
+        canActivate:[RoleGuard],
+        data:{
+          expectedRoles: ['SYSTEM_ADMIN', 'WAREHOUSE_MANAGER', 'WAREHOUSE_CLERK', 'APPROVER', 'REQUESTER', 'AUDITOR'] 
+        },
+        loadComponent: ()=> import('./Components/profile/profile').then(m => m.Profile)
       },
       {
         path: 'waiting-permission',

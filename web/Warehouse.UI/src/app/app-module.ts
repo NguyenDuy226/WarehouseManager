@@ -1,12 +1,10 @@
 import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { SideBar } from './Components/side-bar/side-bar';
-import { AuthInterceptor, AuthService } from './Services/auth-service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { AddUserToWarehouse } from './Components/dash-board/add-user-to-warehouse/add-user-to-warehouse';
+import { AuthInterceptor } from './Services/Auth Service/auth-service';
 
 @NgModule({
   declarations: [App],

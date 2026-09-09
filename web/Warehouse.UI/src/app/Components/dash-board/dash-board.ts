@@ -1,13 +1,13 @@
 import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
-import { PagingRequestWarehouse, WarehouseDTO, WarehouseService } from '../../Services/warehouse-service';
 import { combineLatest } from 'rxjs';
-import { PagedResult, UserService, UsersToWarehouseDTO } from '../../Services/user-servive'; 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { AuthService } from '../../Services/auth-service';
 import { AddUserToWarehouse } from "./add-user-to-warehouse/add-user-to-warehouse";
 import { CreateWarehouse } from './create-warehouse/create-warehouse';
+import { PagingRequestWarehouse, WarehouseDTO, WarehouseService } from '../../Services/Base Entity Service/warehouse-service';
+import { AuthService } from '../../Services/Auth Service/auth-service';
+import { PagedResult, UserService, UsersToWarehouseDTO } from '../../Services/Auth Service/user-servive';
 
 @Component({
   selector: 'app-dash-board',

@@ -1,7 +1,7 @@
 import { Component, EventEmitter, inject, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
-import { UserDTO, UserService } from '../../../Services/user-servive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { UserDTO, UserService } from '../../../Services/Auth Service/user-servive';
 
 @Component({
   selector: 'app-role-modal',
@@ -23,9 +23,9 @@ export class RoleModalComponent implements OnChanges {
   availableRoles = [
     { value: 'WAREHOUSE_MANAGER', label: 'Quản lý kho' },
     { value: 'WAREHOUSE_CLERK', label: 'Nhân viên kho' },
-    { value: 'APPROVER', label: 'Người phê duyệt' },
-    { value: 'REQUESTER', label: 'Người yêu cầu' },
-    { value: 'AUDITOR', label: 'Kiểm toán viên' },
+    // { value: 'APPROVER', label: 'Người phê duyệt' },
+    // { value: 'REQUESTER', label: 'Người yêu cầu' },
+    // { value: 'AUDITOR', label: 'Kiểm toán viên' },
     { value: 'USER', label: 'Nhân viên (Cơ bản)' }
   ];
 

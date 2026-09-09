@@ -12,18 +12,19 @@ namespace Warehouse.Infrastructure.Services.Materials
     {
         private readonly WarehouseDbContext _context;
         private readonly CodeGenerator _codeGenerator;
+        private readonly IValidatorName _validator;
 
-        public MaterialService(WarehouseDbContext context, CodeGenerator codeGenerator)
+        public MaterialService(WarehouseDbContext context, CodeGenerator codeGenerator, IValidatorName validatorName)
         {
+            _validator = validatorName;
             _context = context;
             _codeGenerator = codeGenerator;
         }
 
         public async Task<PagedResult<MaterialDto>> GetAllAsync(PagingRequest request)
         {
-            var query = _context.Materials.AsQueryable();
+            var query = _context.Materials.AsNoTracking().AsQueryable();
             var totalCount = await query.CountAsync();
-
             var items = await query
                 .OrderByDescending(m => m.Id)
                 .Skip((request.PageNumber - 1) * request.PageSize)
@@ -34,7 +35,9 @@ namespace Warehouse.Infrastructure.Services.Materials
                     Code = m.Code,
                     Name = m.Name,
                     CategoryId = m.CategoryId,
+                    CategoryName = m.Category != null ? m.Category.Name : string.Empty,
                     UnitOfMeasureId = m.UnitOfMeasureId,
+                    UnitName = m.UnitOfMeasure != null ? m.UnitOfMeasure.Name : string.Empty,
                     RefPrice = m.RefPrice,
                     MininumStock = m.MininumStock,
                     Status = m.Status
@@ -70,11 +73,31 @@ namespace Warehouse.Infrastructure.Services.Materials
 
         public async Task<MaterialDto> CreateAsync(CreateMaterialDto dto)
         {
+            string validName = _validator.ValidName(dto.Name);
+
+            if (dto.RefPrice < 0)
+                throw new Exception("ref price have to > 0");
+                
+            if (dto.MininumStock < 0)
+                throw new Exception("mininum stock have to > 0");
+
+            if (string.IsNullOrEmpty(validName))
+            {
+                throw new Exception("valid name cant be null");
+            }
+            var isExist = await _context.Materials
+                .AnyAsync(m => m.Name.ToLower() == validName.ToLower() && !m.IsRemoved);
+                
+            if (isExist)
+            {
+                throw new Exception($"material '{validName}' already exist");
+            }
+
             var item = new Material
             {
                 Id = Guid.NewGuid(),
                 Code = await _codeGenerator.GenerateCode<Material>(),
-                Name = dto.Name,
+                Name = validName,
                 CategoryId = dto.CategoryId,
                 UnitOfMeasureId = dto.UnitOfMeasureId,
                 RefPrice = dto.RefPrice,
@@ -85,13 +108,18 @@ namespace Warehouse.Infrastructure.Services.Materials
             await _context.Materials.AddAsync(item);
             await _context.SaveChangesAsync();
 
+            await _context.Entry(item).Reference(m => m.Category).LoadAsync();
+            await _context.Entry(item).Reference(m => m.UnitOfMeasure).LoadAsync();
+
             return new MaterialDto
             {
                 Id = item.Id,
                 Code = item.Code,
                 Name = item.Name,
                 CategoryId = item.CategoryId,
+                CategoryName = item.Category != null ? item.Category.Name : string.Empty,
                 UnitOfMeasureId = item.UnitOfMeasureId,
+                UnitName = item.UnitOfMeasure != null ? item.UnitOfMeasure.Name : string.Empty,
                 RefPrice = item.RefPrice,
                 MininumStock = item.MininumStock,
                 Status = item.Status
@@ -102,8 +130,25 @@ namespace Warehouse.Infrastructure.Services.Materials
         {
             var item = await _context.Materials.FindAsync(id);
             if (item == null) return false;
+            if (dto.RefPrice < 0)
+                throw new Exception("ref price have to > 0");
+                
+            if (dto.MininumStock < 0)
+                throw new Exception("mininum stock have to > 0");
 
-            item.Name = dto.Name;
+            string validName = _validator.ValidName(dto.Name);
+            if (string.IsNullOrEmpty(validName))
+                throw new Exception("material name cant be null");
+
+            if (item.Name.ToLower() != validName.ToLower())
+            {
+                var isExist = await _context.Materials.AnyAsync(m => m.Id != id && m.Name.ToLower() == validName.ToLower() && !m.IsRemoved);
+                    
+                if (isExist)
+                    throw new Exception($"material '{validName}' already exist ");
+            }
+
+            item.Name = validName; 
             item.CategoryId = dto.CategoryId;
             item.UnitOfMeasureId = dto.UnitOfMeasureId;
             item.RefPrice = dto.RefPrice;
@@ -113,7 +158,7 @@ namespace Warehouse.Infrastructure.Services.Materials
             await _context.SaveChangesAsync();
             return true;
         }
-
+        
         public async Task<bool> DeleteAsync(Guid id)
         {
             var item = await _context.Materials.FindAsync(id);
@@ -122,5 +167,6 @@ namespace Warehouse.Infrastructure.Services.Materials
             await _context.SaveChangesAsync();
             return true;
         }
+
     }
 }

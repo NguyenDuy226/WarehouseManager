@@ -15,6 +15,7 @@ namespace Warehouse.Infrastructure.Data
         {
             _httpContextAccessor = httpContextAccessor;
         }
+        
         public DbSet<Material> Materials { get; set; }
         public DbSet<MaterialCategory> MaterialCategories { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
@@ -27,10 +28,15 @@ namespace Warehouse.Infrastructure.Data
         public DbSet<AuthAuditLog> AuthAuditLogs { get; set; }
         public DbSet<PasswordHistory> PasswordHistories { get; set; }
         public DbSet<StockDocument> StockDocuments { get; set; }
+        // public DbSet<ReceiptDocument> ReceiptDocuments { get; set; }
+        // public DbSet<TransferDocument> TransferDocuments { get; set; }
+        // public DbSet<OpeningDocument> OpeningDocuments { get; set; }
+        // public DbSet<ReversalDocument> ReversalDocuments { get; set; }
         public DbSet<StockDocumentLine> StockDocumentLines { get; set; }
         public DbSet<StockMovement> StockMovements { get; set; }
         public DbSet<StockBalance> StockBalances { get; set; }
         public DbSet<ApprovalHistory> ApprovalHistories { get; set; }
+        // public DbSet<WarehouseDetail> WarehouseDetails {get; set; }
     
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -57,6 +63,9 @@ namespace Warehouse.Infrastructure.Data
 
             builder.Entity<WarehousePermission>()
                 .ToTable("WarehousePermissions", "warehouse");
+
+            // builder.Entity<WarehouseDetail>()
+            //     .ToTable("WarehouseDetails", "warehouse");
 
             //identity schema
             builder.Entity<AppUser>()
@@ -85,6 +94,7 @@ namespace Warehouse.Infrastructure.Data
 
             builder.Entity<PasswordHistory>()
                 .ToTable("PasswordHistories", "identity");
+                
             //audit schema
             builder.Entity<EntityAuditLog>(entity =>
             {
@@ -93,8 +103,10 @@ namespace Warehouse.Infrastructure.Data
                 entity.HasIndex(e => new { e.TableName, e.PrimaryKey });
                 entity.HasIndex(e => e.UserId);
             });
+            
             builder.Entity<AuthAuditLog>()
                 .ToTable("AuthAuditLogs", "audit");
+                
             //sequense
             builder.HasSequence<long>("WarehouseCodeSeq")
                 .StartsAt(1)
@@ -154,13 +166,23 @@ namespace Warehouse.Infrastructure.Data
             {
                 entity.ToTable("StockDocuments", "stock");
                 entity.HasIndex(e => e.Code).IsUnique();
-                entity.Property(e => e.Code).IsRequired().HasMaxLength(50);                
+                entity.Property(e => e.Code).IsRequired().HasMaxLength(50);              
                 entity.HasMany(d => d.Lines)
                       .WithOne(l => l.Document)
                       .HasForeignKey(l => l.DocumentId)
                       .OnDelete(DeleteBehavior.Cascade);
+                entity.HasDiscriminator<string>("DocumentType")
+                            .HasValue<IssueDocument>("ISSUE")        
+                            .HasValue<ReceiptDocument>("RECEIPT")
+                            .HasValue<TransferDocument>("TRANSFER")
+                            .HasValue<OpeningDocument>("OPENING")
+                            .HasValue<ReversalDocument>("REVERSAL")
+                            .HasValue<AdjustmentDocument>("ADJUSTMENT");
             });
-
+            // builder.Entity<ReceiptDocument>().ToTable("ReceiptDocuments", "stock");
+            // builder.Entity<TransferDocument>().ToTable("TransferDocuments", "stock");
+            // builder.Entity<OpeningDocument>().ToTable("OpeningDocuments", "stock");
+            // builder.Entity<ReversalDocument>().ToTable("ReversalDocuments", "stock");
             builder.Entity<StockDocumentLine>(entity =>
             {
                 entity.ToTable("StockDocumentLines", "stock");
@@ -168,23 +190,22 @@ namespace Warehouse.Infrastructure.Data
                 entity.Property(e => e.UnitPrice).HasColumnType("numeric(20,4)");
                 entity.HasQueryFilter(e => !e.IsRemoved);
             });
-
+            
             builder.Entity<StockMovement>(entity =>
             {
                 entity.ToTable("StockMovements", "stock");
                 entity.Property(e => e.MovementQuantity).HasColumnType("numeric(18,4)");
                 entity.HasIndex(e => new { e.WarehouseId, e.MaterialId });
             });
-
             builder.Entity<StockBalance>(entity =>
             {
                 entity.ToTable("StockBalances", "stock");
-                entity.HasKey(e => new { e.WarehouseId, e.MaterialId });
+                // entity.HasKey(e => new { e.WarehouseId, e.MaterialId });
                 entity.Property(e => e.TotalQuantity).HasColumnType("numeric(18,4)");
                 entity.Property(e => e.MovingAveragePrice).HasColumnType("numeric(20,4)");
                 entity.Property(e => e.RowVersion).IsRowVersion().IsConcurrencyToken();
             });
-
+            
             builder.Entity<ApprovalHistory>(entity =>
             {
                 entity.ToTable("ApprovalHistories", "stock");
@@ -199,7 +220,8 @@ namespace Warehouse.Infrastructure.Data
             builder.Entity<MaterialCategory>().HasQueryFilter(x => !x.IsRemoved);
             builder.Entity<UnitOfMeasure>().HasQueryFilter(x => !x.IsRemoved);
                             
-            }
+        }
+        
         // public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         // {
         //     CreateAuditLog();
@@ -279,7 +301,7 @@ namespace Warehouse.Infrastructure.Data
         //     }
 
         //     }
-        
-        
-        }
+    
+    
+    }
 }

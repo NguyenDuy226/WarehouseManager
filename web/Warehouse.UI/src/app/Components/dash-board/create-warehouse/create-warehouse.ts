@@ -1,7 +1,7 @@
 import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { WarehouseService } from '../../../Services/warehouse-service';
+import { WarehouseService } from '../../../Services/Base Entity Service/warehouse-service';
 
 @Component({
   selector: 'app-create-warehouse',

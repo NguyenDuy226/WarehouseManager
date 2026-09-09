@@ -5,6 +5,8 @@ using Warehouse.Application.Interfaces;
 using Warehouse.Domain.Entities;
 using Warehouse.Domain.Inventory.Enums;
 using Warehouse.Infrastructure.Data;
+using System.Text.RegularExpressions; 
+
 
 namespace Warehouse.Infrastructure.Services.Suppliers
 {
@@ -12,9 +14,11 @@ namespace Warehouse.Infrastructure.Services.Suppliers
     {
         private readonly WarehouseDbContext _context;
         private readonly CodeGenerator _codeGenerator;
+        private readonly IValidatorName _validator;
 
-        public SupplierService(WarehouseDbContext context, CodeGenerator codeGenerator)
+        public SupplierService(WarehouseDbContext context, CodeGenerator codeGenerator, IValidatorName validator)
         {
+            _validator = validator;
             _context = context;
             _codeGenerator = codeGenerator;
         }
@@ -68,14 +72,38 @@ namespace Warehouse.Infrastructure.Services.Suppliers
 
         public async Task<SupplierDto> CreateAsync(CreateSupplierDto dto)
         {
+            string validName = _validator.ValidHumanName(dto.Name);
+
+            if (string.IsNullOrEmpty(validName))
+                throw new Exception("Supplier name cant be null");
+
+            var isExist = await _context.Suppliers.AnyAsync(s => s.Name.ToLower() == validName.ToLower() && !s.IsRemoved);
+                
+            if (isExist) throw new Exception($"Supplier '{validName}' already exist");
+
+            string contact = dto.Contact?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(contact))
+            {
+                if (contact.Contains("@"))
+                {
+                    if (!Regex.IsMatch(contact, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+                        throw new Exception("invalid email");
+                }
+                else
+                {
+                    if (contact.Any(char.IsLetter))
+                        throw new Exception("invalid phone number");
+                }
+            }
+
             var item = new Supplier
             {
                 Id = Guid.NewGuid(),
                 Code = await _codeGenerator.GenerateCode<Supplier>(),
-                Name = dto.Name,
-                TaxCode = dto.TaxCode,
-                Addres = dto.Addres,
-                Contact = dto.Contact,
+                Name = validName, 
+                TaxCode = dto.TaxCode.Trim(),
+                Addres = dto.Addres.Trim(),
+                Contact = contact,
                 Status = EntityStatus.Active
             };
 
@@ -99,16 +127,43 @@ namespace Warehouse.Infrastructure.Services.Suppliers
             var item = await _context.Suppliers.FindAsync(id);
             if (item == null) return false;
 
-            item.Name = dto.Name;
-            item.TaxCode = dto.TaxCode;
-            item.Addres = dto.Addres;
-            item.Contact = dto.Contact;
+            string validName = _validator.ValidHumanName(dto.Name);
+            if (string.IsNullOrEmpty(validName)) throw new Exception("supplier name cant be null");
+
+            if (item.Name.ToLower() != validName.ToLower())
+            {
+                var isExist = await _context.Suppliers
+                    .AnyAsync(s => s.Id != id && s.Name.ToLower() == validName.ToLower() && !s.IsRemoved);
+                    
+                if (isExist)
+                    throw new Exception($"supplier '{validName}' already exist");
+            }
+
+            string contact = dto.Contact?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(contact))
+            {
+                if (contact.Contains("@"))
+                {
+                    if (!Regex.IsMatch(contact, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+                        throw new Exception("invalid email");
+                }
+                else
+                {
+                    if (contact.Any(char.IsLetter))
+                        throw new Exception("invalid phone number");
+                }
+            }
+
+            item.Name = validName;
+            item.TaxCode = dto.TaxCode.Trim();
+            item.Addres = dto.Addres.Trim();
+            item.Contact = contact;
             item.Status = dto.Status;
 
             await _context.SaveChangesAsync();
             return true;
         }
-
+                
         public async Task<bool> DeleteAsync(Guid id)
         {
             var item = await _context.Suppliers.FindAsync(id);

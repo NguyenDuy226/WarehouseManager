@@ -1,8 +1,8 @@
 import { ChangeDetectorRef, Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
-import { WarehouseDTO, WarehouseService } from '../../../Services/warehouse-service';
-import { UserService, UsersToWarehouseDTO } from '../../../Services/user-servive';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { WarehouseDTO, WarehouseService } from '../../../Services/Base Entity Service/warehouse-service';
+import { UserService, UsersToWarehouseDTO } from '../../../Services/Auth Service/user-servive';
 
 export interface UserOption {
   id: string;

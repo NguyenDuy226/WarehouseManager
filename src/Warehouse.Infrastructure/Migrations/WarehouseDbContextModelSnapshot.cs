@@ -368,11 +368,7 @@ namespace Warehouse.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("CategoryId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("CategoryId1")
+                    b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Code")
@@ -398,21 +394,17 @@ namespace Warehouse.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<string>("UnitOfMeasureId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("UnitOfMeasureId1")
+                    b.Property<Guid>("UnitOfMeasureId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId1");
+                    b.HasIndex("CategoryId");
 
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.HasIndex("UnitOfMeasureId1");
+                    b.HasIndex("UnitOfMeasureId");
 
                     b.ToTable("Materials", "warehouse");
                 });
@@ -506,7 +498,8 @@ namespace Warehouse.Infrastructure.Migrations
 
             modelBuilder.Entity("Warehouse.Domain.Entities.StockBalance", b =>
                 {
-                    b.Property<Guid>("WarehouseId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("MaterialId")
@@ -526,7 +519,17 @@ namespace Warehouse.Infrastructure.Migrations
                     b.Property<decimal>("TotalValue")
                         .HasColumnType("numeric");
 
-                    b.HasKey("WarehouseId", "MaterialId");
+                    b.Property<Guid?>("WarehouseEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("WarehouseEntityId");
 
                     b.ToTable("StockBalances", "stock");
                 });
@@ -546,11 +549,24 @@ namespace Warehouse.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("DocumentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
-
-                    b.Property<Guid?>("ToWarehouseId")
-                        .HasColumnType("uuid");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
@@ -563,7 +579,13 @@ namespace Warehouse.Infrastructure.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
+                    b.HasIndex("WarehouseId");
+
                     b.ToTable("StockDocuments", "stock");
+
+                    b.HasDiscriminator<string>("DocumentType").HasValue("StockDocument");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Warehouse.Domain.Entities.StockDocumentLine", b =>
@@ -590,6 +612,8 @@ namespace Warehouse.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("MaterialId");
 
                     b.ToTable("StockDocumentLines", "stock");
                 });
@@ -792,6 +816,79 @@ namespace Warehouse.Infrastructure.Migrations
                     b.ToTable("WarehousePermissions", "warehouse");
                 });
 
+            modelBuilder.Entity("Warehouse.Domain.Entities.AdjustmentDocument", b =>
+                {
+                    b.HasBaseType("Warehouse.Domain.Entities.StockDocument");
+
+                    b.HasDiscriminator().HasValue("ADJUSTMENT");
+                });
+
+            modelBuilder.Entity("Warehouse.Domain.Entities.IssueDocument", b =>
+                {
+                    b.HasBaseType("Warehouse.Domain.Entities.StockDocument");
+
+                    b.Property<string>("ExternalDocumentNo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Receiver")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.ToTable("StockDocuments", "stock", t =>
+                        {
+                            t.Property("ExternalDocumentNo")
+                                .HasColumnName("IssueDocument_ExternalDocumentNo");
+                        });
+
+                    b.HasDiscriminator().HasValue("ISSUE");
+                });
+
+            modelBuilder.Entity("Warehouse.Domain.Entities.OpeningDocument", b =>
+                {
+                    b.HasBaseType("Warehouse.Domain.Entities.StockDocument");
+
+                    b.HasDiscriminator().HasValue("OPENING");
+                });
+
+            modelBuilder.Entity("Warehouse.Domain.Entities.ReceiptDocument", b =>
+                {
+                    b.HasBaseType("Warehouse.Domain.Entities.StockDocument");
+
+                    b.Property<string>("ExternalDocumentNo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("SupplierId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasDiscriminator().HasValue("RECEIPT");
+                });
+
+            modelBuilder.Entity("Warehouse.Domain.Entities.ReversalDocument", b =>
+                {
+                    b.HasBaseType("Warehouse.Domain.Entities.StockDocument");
+
+                    b.Property<Guid>("OriginalDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.HasDiscriminator().HasValue("REVERSAL");
+                });
+
+            modelBuilder.Entity("Warehouse.Domain.Entities.TransferDocument", b =>
+                {
+                    b.HasBaseType("Warehouse.Domain.Entities.StockDocument");
+
+                    b.Property<Guid>("ToWarehouseId")
+                        .HasColumnType("uuid");
+
+                    b.HasIndex("ToWarehouseId");
+
+                    b.HasDiscriminator().HasValue("TRANSFER");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Warehouse.Domain.Entities.AppRole", null)
@@ -865,11 +962,15 @@ namespace Warehouse.Infrastructure.Migrations
                 {
                     b.HasOne("Warehouse.Domain.Entities.MaterialCategory", "Category")
                         .WithMany("Materials")
-                        .HasForeignKey("CategoryId1");
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Warehouse.Domain.Entities.UnitOfMeasure", "UnitOfMeasure")
                         .WithMany()
-                        .HasForeignKey("UnitOfMeasureId1");
+                        .HasForeignKey("UnitOfMeasureId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Category");
 
@@ -898,6 +999,30 @@ namespace Warehouse.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Warehouse.Domain.Entities.StockBalance", b =>
+                {
+                    b.HasOne("Warehouse.Domain.Entities.Material", null)
+                        .WithMany("StockBalances")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Warehouse.Domain.Entities.WarehouseEntity", null)
+                        .WithMany("StockBalances")
+                        .HasForeignKey("WarehouseEntityId");
+                });
+
+            modelBuilder.Entity("Warehouse.Domain.Entities.StockDocument", b =>
+                {
+                    b.HasOne("Warehouse.Domain.Entities.WarehouseEntity", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Warehouse");
+                });
+
             modelBuilder.Entity("Warehouse.Domain.Entities.StockDocumentLine", b =>
                 {
                     b.HasOne("Warehouse.Domain.Entities.StockDocument", "Document")
@@ -906,7 +1031,15 @@ namespace Warehouse.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Warehouse.Domain.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Document");
+
+                    b.Navigation("Material");
                 });
 
             modelBuilder.Entity("Warehouse.Domain.Entities.WarehousePermission", b =>
@@ -926,6 +1059,26 @@ namespace Warehouse.Infrastructure.Migrations
                     b.Navigation("Warehouse");
                 });
 
+            modelBuilder.Entity("Warehouse.Domain.Entities.ReceiptDocument", b =>
+                {
+                    b.HasOne("Warehouse.Domain.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("Warehouse.Domain.Entities.TransferDocument", b =>
+                {
+                    b.HasOne("Warehouse.Domain.Entities.WarehouseEntity", "ToWarehouse")
+                        .WithMany()
+                        .HasForeignKey("ToWarehouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ToWarehouse");
+                });
+
             modelBuilder.Entity("Warehouse.Domain.Entities.AppRole", b =>
                 {
                     b.Navigation("Users");
@@ -940,6 +1093,11 @@ namespace Warehouse.Infrastructure.Migrations
                     b.Navigation("WarehousePermissions");
                 });
 
+            modelBuilder.Entity("Warehouse.Domain.Entities.Material", b =>
+                {
+                    b.Navigation("StockBalances");
+                });
+
             modelBuilder.Entity("Warehouse.Domain.Entities.MaterialCategory", b =>
                 {
                     b.Navigation("Materials");
@@ -948,6 +1106,11 @@ namespace Warehouse.Infrastructure.Migrations
             modelBuilder.Entity("Warehouse.Domain.Entities.StockDocument", b =>
                 {
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("Warehouse.Domain.Entities.WarehouseEntity", b =>
+                {
+                    b.Navigation("StockBalances");
                 });
 #pragma warning restore 612, 618
         }

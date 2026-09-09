@@ -1,0 +1,347 @@
+import { CommonModule } from '@angular/common';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, inject, HostListener } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import * as XLSX from 'xlsx';
+import { switchMap } from 'rxjs'; 
+import { WarehouseDetailRequest, WarehouseDetailService } from '../../../Services/Base Entity Service/warehouse-detail-service';
+import { DocumentService } from '../../../Services/Document Service/document-service';
+
+export interface WarehouseDetail {
+  materialId: string;
+  code: string;
+  name: string;
+  categoryName: string;
+  unitName: string;
+  currentStock: number; 
+}
+
+export interface IssueLine {
+  materialId: string;
+  materialCode: string;
+  materialName: string;
+  unitName: string;
+  categoryName: string;
+  quantity: number;
+  unitPrice: number;    
+  totalAmount: number;
+  currentStock?: number;
+  
+  showDropdown?: boolean;
+  searchQuery?: string;
+}
+
+@Component({
+  selector: 'app-issue',
+  imports: [CommonModule, FormsModule], 
+  templateUrl: './issue.html',
+  styleUrl: './issue.css',
+})
+export class Issue implements OnInit {
+  @Input() warehouseId!: string;
+  @Input() warehouseName: string = '';
+
+  @Output() close = new EventEmitter<void>();
+  @Output() save = new EventEmitter<void>(); 
+
+  private readonly detailService = inject(WarehouseDetailService);
+  private readonly documentService = inject(DocumentService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  issueHeader = {
+    warehouseId: '',
+    receiver: '', 
+    externalDocumentNo: '', 
+    documentDate: new Date().toISOString().substring(0, 10),
+    reason: '', 
+    note: ''
+  };
+
+  lines: IssueLine[] = [];
+  warehouseDetails: WarehouseDetail[] = []; 
+
+  isSubmitting = false;
+  reasonFocused = false;
+  noteFocused = false;
+
+  @HostListener('document:click', ['$event'])
+  onClickOutside(event: Event) {
+    this.lines.forEach(l => l.showDropdown = false);
+  }
+
+  ngOnInit(): void {
+    if (this.warehouseId) {
+      this.issueHeader.warehouseId = this.warehouseId;
+      this.loadDetail();
+    }
+    this.addEmptyLine();
+  }
+
+  private loadDetail(): void {
+    const request: WarehouseDetailRequest = {
+      warehouseId: this.warehouseId,
+      pageNumber: 1,
+      pageSize: 2000, 
+      keyword: ''
+    };
+    
+    this.detailService.getDetail(request).subscribe({
+      next: (response) => {
+        this.warehouseDetails = (response.items || [])
+          .filter((item: any) => item.quantity > 0)
+          .map((item: any) => ({
+            materialId: item.materialId, 
+            code: item.materialCode,
+            name: item.materialName,
+            unitName: item.unitOfMeasureName,
+            categoryName: item.categoryName,
+            currentStock: item.quantity 
+          }));
+      },
+      error: (err) => console.error('Lỗi khi tải danh sách vật tư trong kho:', err)
+    });
+  }
+
+  //drop down list
+  toggleDropdown(line: IssueLine, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.lines.forEach(l => { if (l !== line) l.showDropdown = false; });
+    
+    line.showDropdown = !line.showDropdown;
+    if (line.showDropdown) line.searchQuery = ''; 
+  }
+
+  searchMaterial(query?: string): WarehouseDetail[] {
+    if (!query || query.trim() === '') return this.warehouseDetails;
+    const lowerQuery = query.toLowerCase().trim();
+    return this.warehouseDetails.filter(m => m.code.toLowerCase().includes(lowerQuery) || m.name.toLowerCase().includes(lowerQuery));
+  }
+
+  selectMaterial(line: IssueLine, mat: WarehouseDetail): void {
+    line.materialId = mat.materialId;
+    line.materialCode = mat.code;
+    line.materialName = mat.name;
+    line.unitName = mat.unitName;
+    line.categoryName = mat.categoryName;
+    line.currentStock = mat.currentStock; 
+    line.unitPrice = 0; 
+
+    this.calTotalLine(line);
+    line.showDropdown = false; 
+  }
+
+  // process
+  private buildPayload(): any {
+    const localDate = new Date(this.issueHeader.documentDate + 'T00:00:00');
+    const utcDateString = localDate.toISOString();
+    
+    return {
+      warehouseId: this.issueHeader.warehouseId,
+      receiver: this.issueHeader.receiver.trim(),
+      externalDocumentNo: this.issueHeader.externalDocumentNo.trim(), 
+      documentDate: utcDateString,      
+      reason: this.issueHeader.reason.trim(),
+      note: this.issueHeader.note.trim(),
+      lines: this.lines.map(l => ({
+        materialId: l.materialId,
+        quantity: Number(l.quantity),
+        unitPrice: Number(l.unitPrice)
+      }))
+    };
+  }
+
+  saveDraft(): void {
+    if (!this.checkValidIssue()) return;
+    const payload = this.buildPayload();
+    this.isSubmitting = true;
+    this.documentService.createIssue(payload).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        alert('Đã lưu nháp phiếu xuất kho thành công!');
+        this.save.emit(); 
+        this.onClose();
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        console.error(err);
+        alert(err.error?.message || 'Có lỗi xảy ra khi lưu nháp phiếu xuất kho.');
+      }
+    });
+  }
+
+  submitForApproval(): void {
+    if (!this.checkValidIssue()) return;
+    
+    if (confirm('Bạn có chắc chắn muốn gửi phiếu xuất kho này cho Quản lý phê duyệt?')) {
+      const payload = this.buildPayload();
+      this.isSubmitting = true;
+      
+      this.documentService.createIssue(payload).pipe(
+        switchMap((response: any) => {
+          const docId = response?.id || response?.data || response?.value || response;
+          if (!docId) throw new Error('Không lấy được ID phiếu từ hệ thống.');
+          return this.documentService.submit(docId);
+        })
+      ).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          alert('Đã gửi phê duyệt phiếu xuất kho thành công!');
+          this.save.emit(); 
+          this.onClose();
+        },
+        error: (err) => {
+          this.isSubmitting = false;
+          console.error('Lỗi khi gọi API:', err);
+          alert(err.message || err.error?.message || 'Có lỗi xảy ra khi gửi phê duyệt phiếu xuất kho.');
+        }
+      });
+    }
+  }
+
+  private checkValidIssue(): boolean {
+    if (!this.issueHeader.warehouseId) {
+      alert('Vui lòng chọn kho xuất hàng!');
+      return false;
+    }
+    if (!this.issueHeader.documentDate) {
+      alert('Vui lòng chọn ngày lập phiếu!');
+      return false;
+    }
+    if (!this.lines || this.lines.length === 0) {
+      alert('Phiếu xuất phải có ít nhất 1 dòng vật tư!');
+      return false;
+    }
+    
+    for (let i = 0; i < this.lines.length; i++) {
+      const line = this.lines[i];
+      const stt = i + 1;
+      
+      if (!line.materialId) {
+        alert(`Dòng ${stt}: Vui lòng chọn vật tư!`);
+        return false;
+      }
+      
+      if (line.quantity === null || line.quantity === undefined || line.quantity.toString() === '' || Number(line.quantity) <= 0) {
+        alert(`Dòng ${stt}: Số lượng xuất phải lớn hơn 0!`);
+        return false;
+      }
+
+      if (line.currentStock !== undefined && Number(line.quantity) > line.currentStock) {
+        alert(`Dòng ${stt}: Không thể xuất ${line.quantity}. Tồn kho hiện tại chỉ còn ${line.currentStock}!`);
+        return false;
+      }
+      
+      if (line.unitPrice === null || line.unitPrice === undefined || line.unitPrice.toString() === '' || Number(line.unitPrice) < 0) {
+        alert(`Dòng ${stt}: Đơn giá không được âm!`);
+        return false;
+      }
+    }
+    
+    const materialIds = this.lines.map(l => l.materialId);
+    if (new Set(materialIds).size !== materialIds.length) {
+      alert('Có vật tư bị chọn lặp lại nhiều lần! Vui lòng gộp số lượng trên 1 dòng.');
+      return false;
+    }
+    return true;
+  }
+
+  onClose(): void {
+    this.close.emit();
+  }
+
+  //action
+  addEmptyLine(): void {
+    this.lines.push({ 
+      materialId: '', materialCode: '', materialName: '', 
+      unitName: '', categoryName:'', quantity: 1, unitPrice: 0, 
+      totalAmount: 0, showDropdown: false, searchQuery: '' 
+    });
+  }
+
+  removeLine(index: number): void {
+    this.lines.splice(index, 1);
+  }
+
+  calTotalLine(line: IssueLine): void {
+    if (line.quantity > 0 && line.unitPrice >= 0) {
+      line.totalAmount = Number((line.quantity * line.unitPrice).toFixed(4));
+    } 
+    else {
+      line.totalAmount = 0;
+    }
+  }
+
+  get grandTotal(): number {
+    return this.lines.reduce((sum, line) => sum + (line.totalAmount || 0), 0);
+  }
+
+  //excel
+  triggerExcelUpload(): void {
+    document.getElementById('excelFileInput')?.click();
+  }
+
+  onFileChange(event: any): void {
+    const target: DataTransfer = <DataTransfer>(event.target);
+    if (!target.files || target.files.length !== 1) {
+      alert('Vui lòng chỉ chọn 1 file duy nhất.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const arrayBuffer = e.target.result;
+      const workbook: XLSX.WorkBook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName: string = workbook.SheetNames[0];
+      const worksheet: XLSX.WorkSheet = workbook.Sheets[sheetName];
+
+      const excelData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+      this.parseExcelData(excelData);
+    };
+    reader.readAsArrayBuffer(target.files[0]);
+    event.target.value = ''; 
+  }
+
+  private parseExcelData(data: any[]): void {
+    let addedCount = 0;
+    let notFoundCount = 0;
+
+    data.forEach((row: any) => {
+      const rowCode = (row['Mã VT'] || '').toString().trim();
+      const rowQty = parseFloat(row['Số lượng']) || 0;
+      const rowPrice = parseFloat(row['Đơn giá']) || 0; 
+
+      if (!rowCode || rowQty <= 0) return;
+
+      const matchedMaterial = this.warehouseDetails.find(m => m.code.toLowerCase() === rowCode.toLowerCase());
+
+      if (matchedMaterial) {
+        const emptyLineIndex = this.lines.findIndex(l => !l.materialId);
+        const newLine: IssueLine = {
+          materialId: matchedMaterial.materialId,
+          materialCode: matchedMaterial.code,
+          materialName: matchedMaterial.name,
+          unitName: matchedMaterial.unitName,
+          categoryName: matchedMaterial.categoryName,
+          currentStock: matchedMaterial.currentStock,
+          quantity: rowQty,
+          unitPrice: rowPrice,
+          totalAmount: 0,
+          showDropdown: false
+        };
+        this.calTotalLine(newLine);
+
+        if (emptyLineIndex !== -1) {
+          this.lines[emptyLineIndex] = newLine;
+        } else {
+          this.lines.push(newLine);
+        }
+        addedCount++;
+      } else {
+        notFoundCount++;
+      }
+    });
+
+    if (notFoundCount > 0) {
+      alert(`Nhập thành công ${addedCount} mã. Có ${notFoundCount} mã vật tư bị bỏ qua do KHÔNG CÓ TRONG KHO này.`);
+    }
+  }
+}

@@ -1,1 +1,252 @@
-<p>warehouse-detail works!</p>
+<div class="p-6 max-w-6xl mx-auto space-y-6 bg-gray-50 min-h-screen">
+  @if (isLoading) {
+    <div class="flex flex-col items-center justify-center p-12 space-y-4">
+      <div class="w-8 h-8 border-4 border-[#0088cc] border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-gray-500 font-medium">Đang tải thông kho...</p>
+    </div>
+  } 
+  @else if (errorMessage) {
+    <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-md shadow-sm">
+      <div class="flex items-center mb-4">
+        <svg class="w-6 h-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <h3 class="text-lg font-medium text-red-800">Đã xảy ra lỗi</h3>
+      </div>
+      <p class="text-red-700 mb-4">{{ errorMessage }}</p>
+      <button (click)="goBack()" class="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-95 transition-all duration-200">
+        Quay lại danh sách
+      </button>
+    </div>
+  } 
+  @else if (warehouse) {
+    <!-- header -->
+    <div class="mb-4">
+      <button (click)="goBack()" class="flex items-center text-sm font-medium text-gray-600 hover:text-[#0088cc] hover:-translate-x-1 transition-all duration-200">
+        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        Quay lại danh sách kho
+      </button>
+    </div>
+
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <h2 class="text-2xl font-bold text-gray-900 truncate" [title]="warehouse.name">{{ warehouse.name }}</h2>
+          <p class="text-sm font-medium text-gray-500 mt-1 truncate" [title]="warehouse.code">
+            Mã kho: <span class="text-gray-800 uppercase font-semibold">{{ warehouse.code }}</span>
+          </p>
+        </div>
+        
+        <span class="shrink-0 inline-flex items-center px-3 py-1 text-sm font-medium rounded-full whitespace-nowrap"
+              [class.bg-green-100]="isActive" 
+              [class.text-green-800]="isActive"
+              [class.bg-red-100]="!isActive" 
+              [class.text-red-800]="!isActive">
+          <span class="w-2 h-2 mr-2 rounded-full" [class.bg-green-500]="isActive" [class.bg-red-500]="!isActive"></span>
+          {{ statusText }}
+        </span>
+      </div>
+
+      <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+        <div class="min-w-0">
+          <dt class="text-sm font-semibold text-gray-500 mb-1">Ngày tạo</dt>
+          <dd class="text-base text-gray-900 flex items-center">
+            <svg class="w-5 h-5 text-gray-400 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span class="truncate">{{ warehouse.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </dd>
+        </div>
+        <div class="md:col-span-1 min-w-0">
+          <dt class="text-sm font-semibold text-gray-500 mb-1">Địa chỉ</dt>
+          <dd class="text-base text-gray-900 flex items-start overflow-hidden">
+            <svg class="w-5 h-5 text-gray-400 mr-2 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span class="truncate" [title]="warehouse.address">{{ warehouse.address }}</span>
+          </dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- child comp button -->
+    <div class="flex flex-wrap items-center gap-3">
+      <!--receipt  -->
+      <button (click)="openReceipt()"
+              [disabled]="!isActive" 
+              [title]="!isActive ? 'Kho đang khóa, không thể tạo phiếu nhập' : 'Tạo phiếu nhập kho'"
+              class="flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 hover:bg-emerald-700 hover:-translate-y-0.5 hover:shadow-md active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-emerald-600 disabled:hover:translate-y-0 disabled:hover:shadow-sm disabled:active:scale-100">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        Nhập kho
+      </button>
+      <!-- issue -->
+      <button (click)="openIssue()" 
+              [disabled]="!isActive"
+              [title]="!isActive ? 'Kho đang khóa, không thể tạo phiếu xuất' : 'Tạo phiếu xuất kho'"
+              class="flex items-center px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 hover:bg-amber-600 hover:-translate-y-0.5 hover:shadow-md active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-amber-500 disabled:hover:translate-y-0 disabled:hover:shadow-sm disabled:active:scale-100">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        Xuất kho
+      </button>
+      <!-- transfer -->
+      <button (click)="openTransfer()"
+              [disabled]="!isActive"
+              [title]="!isActive ? 'Kho đang khóa, không thể chuyển hàng' : 'Chuyển hàng sang kho khác'"
+              class="flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 hover:bg-blue-700 hover:-translate-y-0.5 hover:shadow-md active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-blue-600 disabled:hover:translate-y-0 disabled:hover:shadow-sm disabled:active:scale-100">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+        Chuyển kho
+      </button>
+
+      <div class="hidden sm:block w-px h-8 bg-gray-300 mx-1"></div>
+
+      <!-- adjust -->
+      <!-- <button [disabled]="!isActive"
+              [title]="!isActive ? 'Kho đang khóa, không thể điều chỉnh' : 'Kiểm kê và điều chỉnh số lượng'"
+              class="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0088cc] focus:ring-offset-1 hover:bg-gray-50 hover:text-[#0088cc] hover:border-[#0088cc] hover:-translate-y-0.5 hover:shadow active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-700 disabled:hover:border-gray-300 disabled:hover:translate-y-0 disabled:hover:shadow-sm disabled:active:scale-100">
+        <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+        Kiểm kê & Điều chỉnh
+      </button> -->
+
+      <!-- reverse -->
+      <!-- <button [disabled]="!isActive"
+              [title]="!isActive ? 'Kho đang khóa, không thể thực hiện đảo phiếu' : 'Đảo phiếu chứng từ'"
+              class="flex items-center px-4 py-2 bg-white border border-red-300 text-red-600 text-sm font-medium rounded-md shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 hover:bg-red-50 hover:border-red-400 hover:-translate-y-0.5 hover:shadow active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-red-300 disabled:hover:translate-y-0 disabled:hover:shadow-sm disabled:active:scale-100">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+        Đảo phiếu
+      </button> -->
+
+    </div>
+
+    <!-- list material -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-[#f8f9fa]">
+        <div>
+          <h3 class="text-lg font-bold text-gray-800 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-[#0088cc]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+            Danh sách vật tư tồn kho
+          </h3>
+          <span class="text-sm text-gray-500">Tổng cộng: <span class="font-semibold text-[#0088cc]">{{ totaCount }}</span> mã vật tư</span>
+        </div>
+        
+        <div class="w-full sm:w-80 relative">
+          <input type="text" 
+                 [(ngModel)]="detailRequest.keyword" 
+                 (keyup.enter)="onSearchInventory(detailRequest.keyword || '')"
+                 placeholder="Tìm theo mã, tên vật tư..." 
+                 class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:ring-[#0088cc] focus:border-[#0088cc] hover:border-gray-400 text-sm transition-all duration-200">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- table -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm whitespace-nowrap">
+          <thead class="bg-[#eaf4fa] text-gray-700">
+            <tr>
+              <th class="px-6 py-3 font-semibold border-b w-32">Mã VT</th>
+              <th class="px-6 py-3 font-semibold border-b">Tên Vật Tư</th>
+              <th class="px-6 py-3 font-semibold border-b w-40">Danh mục</th>
+              <th class="px-6 py-3 font-semibold border-b w-24">ĐVT</th>
+              <th class="px-6 py-3 font-semibold border-b text-right w-28">Tồn tối thiểu</th>
+              <th class="px-6 py-3 font-semibold border-b text-right w-28">Tồn thực tế</th>
+              <th class="px-6 py-3 font-semibold border-b text-center w-32">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 text-gray-700">
+            
+            @if (isLoadingDetail) {
+              <tr>
+                <td colspan="7" class="px-6 py-12 text-center">
+                  <div class="flex justify-center items-center text-gray-500">
+                    <div class="w-6 h-6 border-2 border-[#0088cc] border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Đang tải danh sách...
+                  </div>
+                </td>
+              </tr>
+            } 
+            @else if (inventoryError) {
+              <tr>
+                <td colspan="7" class="px-6 py-12 text-center text-red-500 font-medium">{{ inventoryError }}</td>
+              </tr>
+            } 
+            @else {
+              @for (item of details; track item.id) {
+                <tr class="hover:bg-gray-50 transition-colors duration-150">
+                  <td class="px-6 py-3 font-medium text-[#0088cc] max-w-[130px] truncate" [title]="item.materialCode">{{ item.materialCode }}</td>
+                  <td class="px-6 py-3 max-w-[220px] sm:max-w-[320px] truncate" [title]="item.materialName">{{ item.materialName }}</td>
+                  <td class="px-6 py-3 text-gray-500 max-w-[150px] truncate" [title]="item.categoryName">{{ item.categoryName || '---' }}</td>
+                  <td class="px-6 py-3 text-gray-500 max-w-[100px] truncate" [title]="item.unitOfMeasureName">{{ item.unitOfMeasureName || '---' }}</td>
+                  <td class="px-6 py-3 text-right">{{ item.mininumStock | number }}</td>
+                  <td class="px-6 py-3 text-right font-bold" 
+                      [class.text-red-500]="item.quantity <= item.mininumStock"
+                      [class.text-green-600]="item.quantity > item.mininumStock">
+                    {{ item.quantity | number }}
+                  </td>
+                  <td class="px-6 py-3 text-center">
+                    @if (item.quantity <= item.mininumStock) {
+                      <span class="bg-red-50 text-red-600 border border-red-200 text-xs px-2 py-1 rounded whitespace-nowrap">Cần nhập hàng</span>
+                    } @else {
+                      <span class="bg-green-50 text-green-600 border border-green-200 text-xs px-2 py-1 rounded whitespace-nowrap">Đủ tiêu chuẩn</span>
+                    }
+                  </td>
+                </tr>
+              } 
+              @empty {
+                <tr>
+                  <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                    <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                    Kho này hiện tại không có vật tư nào.
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- paging -->
+      @if (totalPages > 1 && !isLoadingDetail && !inventoryError) {
+        <div class="px-6 py-3 border-t border-gray-200 flex justify-between items-center bg-gray-50">
+          <span class="text-sm text-gray-600">
+            Hiển thị trang <span class="font-medium">{{ detailRequest.pageNumber }}</span> trên <span class="font-medium">{{ totalPages }}</span>
+          </span>
+          <div class="flex space-x-2">
+            <button (click)="changePage(detailRequest.pageNumber - 1)" 
+                    [disabled]="detailRequest.pageNumber === 1"
+                    class="px-3 py-1.5 border border-gray-300 rounded bg-white text-sm hover:bg-gray-50 active:scale-95 disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed transition-all duration-200">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <button (click)="changePage(detailRequest.pageNumber + 1)" 
+                    [disabled]="detailRequest.pageNumber === totalPages"
+                    class="px-3 py-1.5 border border-gray-300 rounded bg-white text-sm hover:bg-gray-50 active:scale-95 disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed transition-all duration-200">
+               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+  }
+  <!-- child comp state -->
+  @if (isReceiptOpen && warehouseId) {
+    <app-receipt 
+      [warehouseName]="warehouse?.name || ''"
+      [warehouseId]="warehouseId" 
+      (close)="closeReceipt()"
+      (saved)="handleReceipt($event)">
+    </app-receipt>
+  }
+  @if (isIssueOpen && warehouseId) {
+    <app-issue 
+      [warehouseName]="warehouse?.name || ''"
+      [warehouseId]="warehouseId" 
+      (close)="closeIssue()"
+      (save)="handleIssue()">
+    </app-issue>
+  
+  }
+  @if (isTransferOpen) {
+    <app-transfer
+      [warehouseName]="warehouse?.name || ''"
+      [warehouseId]="warehouseId!"
+      (close)="closeTransfer()"
+      (save)="handleTransfer()">
+    </app-transfer>
+  }
+
+</div>

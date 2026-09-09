@@ -1,9 +1,8 @@
 import { ChangeDetectorRef, Component, EventEmitter, inject, input, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UserDTO, UserService, WarehouseRequestDTO } from '../../../Services/user-servive';
-import { WarehouseService } from '../../../Services/warehouse-service';
-import { PagingRequestWarehouse } from '../../../Services/warehouse-service';
+import { UserDTO, UserService, WarehouseRequestDTO } from '../../../Services/Auth Service/user-servive';
+import { WarehouseService } from '../../../Services/Base Entity Service/warehouse-service';
 
 export interface WarehouseOption {
   id: string;

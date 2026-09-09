@@ -2,10 +2,10 @@ import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router'; 
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { PagedResult, PagingRequest, UserDTO, UserService, WarehouseRequestDTO } from '../../Services/user-servive';
 import { RoleModalComponent } from './role-modal/role-modal';
 import { combineLatest } from 'rxjs';
 import { SetWarehouseModalComponent } from "./set-warehouse-modal/set-warehouse-modal";
+import { PagedResult, PagingRequest, UserDTO, UserService, WarehouseRequestDTO } from '../../Services/Auth Service/user-servive';
 
 @Component({
   selector: 'app-manager-dashboard',

@@ -1,8 +1,8 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { UserService } from '../Services/user-servive';
-import { AuthService } from '../Services/auth-service';
 import { catchError, map, of } from 'rxjs';
+import { UserService } from '../Services/Auth Service/user-servive';
+import { AuthService } from '../Services/Auth Service/auth-service';
 
 export const PermisstionGuard: CanActivateFn = (route, state) => {
   const userService = inject(UserService);
@@ -40,7 +40,8 @@ export const PermisstionGuard: CanActivateFn = (route, state) => {
       return handle('Bạn không có quyền truy cập vào kho này!');
     }),
     catchError((error) => {
-      return of(handle('Lỗi phân quyền, vui lòng thử lại'));
+      console.log(error);
+      return of(handle('Bạn chưa được cấp quyền truy cập kho này, vui lòng thử lại'));
     })
   );
 

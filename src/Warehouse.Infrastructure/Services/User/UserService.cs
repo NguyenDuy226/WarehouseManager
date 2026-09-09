@@ -129,18 +129,18 @@ namespace Warehouse.Application.Services
                 // {
                 //     return (400, new { message = "user is not active" });
                 // }
-                var invalidUsersCount = await _context.Users
-                    .Where(u => userIds.Contains(u.Id))
-                    .Where(u => _context.UserRoles
-                                .Where(ur => ur.UserId == u.Id)
-                                .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
-                                .Any(role => (role ?? "").ToUpper() == "USER")
-                    )
-                    .CountAsync();
-                if (invalidUsersCount > 0)
-                {
-                    return (400, new { message = "user invalid" });
-                }
+                // var invalidUsersCount = await _context.Users
+                //     .Where(u => userIds.Contains(u.Id))
+                //     .Where(u => _context.UserRoles
+                //                 .Where(ur => ur.UserId == u.Id)
+                //                 .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                //                 .Any(role => (role ?? "").ToUpper() == "USER")
+                //     )
+                //     .CountAsync();
+                // if (invalidUsersCount > 0)
+                // {
+                //     return (400, new { message = "user invalid" });
+                // }
             }
             var warehouseIdStr = warehouseId.ToString();
             var existPermissions = await _context.WarehousePermissions
