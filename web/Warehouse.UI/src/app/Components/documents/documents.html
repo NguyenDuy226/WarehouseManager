@@ -9,13 +9,49 @@
       </div>
     </div>
     
-    <!-- search -->
+    <!-- search & mobile filter -->
     <div class="bg-white p-4 rounded-xl border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
       <div class="relative w-full md:max-w-md">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
         <input type="text" [(ngModel)]="keyword" (keyup.enter)="search()" placeholder="Tìm theo mã chứng từ..." class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#0088cc] focus:border-[#0088cc] transition-all text-sm shadow-sm">
+      </div>
+
+      <!-- filter -->
+      <div class="w-full md:w-auto flex flex-col sm:flex-row gap-3 lg:hidden">
+        <!-- type filter -->
+        <div class="relative w-full sm:w-[150px]">
+          <select [(ngModel)]="typeFilter" (change)="typeFilterChange($event)" 
+                  class="w-full appearance-none bg-white border border-gray-200 rounded-md pl-4 pr-10 py-2 focus:outline-none focus:ring-1 focus:ring-[#0088cc] focus:border-[#0088cc] text-sm text-gray-700 cursor-pointer transition-all shadow-sm">
+            <option value="all">Tất cả loại phiếu</option>
+            <option value="1">Nhập kho</option>
+            <option value="2">Xuất kho</option>
+            <option value="3">Chuyển kho</option>
+            <option value="4">Điều chỉnh</option>
+            <option value="5">Đầu kỳ</option>
+            <option value="6">Phiếu đảo</option>
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
+        
+        <!-- status filter -->
+        <div class="relative w-full sm:w-[150px]">
+          <select [(ngModel)]="statusFilter" (change)="statusFilterChange($event)" 
+                  class="w-full appearance-none bg-white border border-gray-200 rounded-md pl-4 pr-10 py-2 focus:outline-none focus:ring-1 focus:ring-[#0088cc] focus:border-[#0088cc] text-sm text-gray-700 cursor-pointer transition-all shadow-sm">
+            <option value="all">Tất cả trạng thái</option>
+            <option [value]="documentStatus.DRAFT">Bản nháp</option>
+            <option [value]="documentStatus.PENDING_APPROVAL">Chờ duyệt</option>
+            <option [value]="documentStatus.POSTED">Đã duyệt</option>
+            <option [value]="documentStatus.REJECTED">Yêu cầu chỉnh sửa</option>
+            <option [value]="documentStatus.CANCELED">Bị từ chối</option>
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -35,16 +71,25 @@
                   }
                 </div>
               </th>
-              <th class="w-[20%] px-5 py-3 cursor-pointer hover:text-[#0088cc] select-none group" (click)="sort('type')">
-                <div class="flex items-center gap-1">Loại Phiếu
-                  @if (sortBy === 'type') {
-                  <span class="text-gray-400 group-hover:text-[#0088cc] transition-colors">
-                    @if (sortDirection === 'desc') { <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg> }
-                    @else { <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg> }
-                  </span>
-                  }
+              
+              <th class="w-[20%] px-5 py-2 font-semibold text-left group cursor-pointer">
+                <div class="flex items-center relative inline-block w-fit -ml-4">
+                  <select [(ngModel)]="typeFilter" (change)="typeFilterChange($event)" 
+                          class="appearance-none bg-transparent hover:bg-gray-200/50 rounded-md border-0 py-2 pl-4 pr-9 m-0 text-sm font-semibold text-gray-600 group-hover:text-[#0088cc] focus:ring-0 focus:outline-none cursor-pointer transition-colors">
+                    <option value="all" class="font-bold">Loại phiếu</option>
+                    <option value="1">Nhập kho</option>
+                    <option value="2">Xuất kho</option>
+                    <option value="3">Chuyển kho</option>
+                    <option value="4">Điều chỉnh</option>
+                    <option value="5">Đầu kỳ</option>
+                    <option value="6">Phiếu đảo</option>
+                  </select>
+                  <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-[#0088cc] transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
                 </div>
               </th>
+
               <th class="w-[20%] px-5 py-3 cursor-pointer hover:text-[#0088cc] select-none group" (click)="sort('createdAt')">
                 <div class="flex items-center gap-1">Ngày lập
                   @if (sortBy === 'createdAt') {
@@ -56,8 +101,21 @@
                 </div>
               </th>
               
-              <th class="w-[20%] px-5 py-3 cursor-pointer hover:text-[#0088cc] select-none group text-center" (click)="sort('status')">
-                <div class="flex items-center justify-center gap-1">Trạng thái</div>
+              <th class="w-[20%] px-5 py-2 font-semibold text-center group cursor-pointer">
+                <div class="flex items-center justify-center relative inline-block w-fit mx-auto">
+                  <select [(ngModel)]="statusFilter" (change)="statusFilterChange($event)" 
+                          class="appearance-none bg-transparent hover:bg-gray-200/50 rounded-md border-0 py-2 pl-4 pr-9 m-0 text-sm font-semibold text-gray-600 group-hover:text-[#0088cc] focus:ring-0 focus:outline-none cursor-pointer transition-colors">
+                    <option value="all" class="font-semibold">Trạng thái</option>
+                    <option [value]="documentStatus.DRAFT">Bản nháp</option>
+                    <option [value]="documentStatus.PENDING_APPROVAL">Chờ duyệt</option>
+                    <option [value]="documentStatus.POSTED">Đã duyệt</option>
+                    <option [value]="documentStatus.REJECTED">Yêu cầu sửa</option>
+                    <option [value]="documentStatus.CANCELED">Bị từ chối</option>
+                  </select>
+                  <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-[#0088cc] transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                </div>
               </th>
               
               <th class="w-[20%] px-5 py-3 font-semibold text-center">Hành động</th>
@@ -122,7 +180,7 @@
                 }
               </td>
               <td class="px-5 py-3 text-center">
-                <div class="flex items-center justify-center gap-2 opacity-0 opacity-100 transition-opacity duration-200">
+                <div class="flex items-center justify-center gap-2 transition-opacity duration-200">
                   @if(!isDocumentDetailOpen){
                     <button 
                     (click)="openDetail(doc.id)"

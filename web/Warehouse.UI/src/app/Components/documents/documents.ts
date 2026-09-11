@@ -24,12 +24,16 @@ export class Documents implements OnInit {
   keyword: string = '';
   sortDirection: 'desc' | 'asc' = 'desc'; 
   sortBy: string = 'createdAt'; 
+
+  // Bổ sung biến cho 2 bộ lọc
+  statusFilter: string = 'all'; 
+  typeFilter: string = 'all'; 
+
   pages: (number | string)[] = [];
   isLoading: boolean = false;
 
   isDocumentDetailOpen : boolean = false;
   selectedDocumentId: string | null = null;
-
 
   pagedResult: PagedResult<DocumentDTO> = {
     items: [],
@@ -40,6 +44,7 @@ export class Documents implements OnInit {
     hasPreviousPage: false,
     hasNextPage: false
   };
+  
   role: string | string[] | null = null;
   isManagerOrAdmin : boolean = false; 
   documentStatus = DocumentStatus;
@@ -59,19 +64,29 @@ export class Documents implements OnInit {
       this.keyword = queryParams.get('keyword') || '';
       this.sortBy = queryParams.get('sortBy') || 'createdAt';
       this.sortDirection = (queryParams.get('sortDirection') as 'asc' | 'desc') || 'desc';
+      
+      // Lấy trạng thái và loại phiếu từ URL
+      this.statusFilter = queryParams.get('status') || 'all';
+      this.typeFilter = queryParams.get('type') || 'all';
+
       this.loadDocuments();
     });
   }
   
   loadDocuments() {
     this.isLoading = true;
-    const request: PagingRequest = {
+    
+    // Ép kiểu 'any' tạm thời để gửi thêm status và type xuống Service
+    const request: any = {
       pageNumber: this.pagedResult.pageNumber,
       pageSize: this.pagedResult.pageSize,
       keyword: this.keyword,
       sortBy: this.sortBy,
-      sortDirection: this.sortDirection        
+      sortDirection: this.sortDirection,
+      status: this.statusFilter !== 'all' ? this.statusFilter : undefined,
+      type: this.typeFilter !== 'all' ? this.typeFilter : undefined
     };
+
     if(this.isManagerOrAdmin){
       this.documentService.getAll(request).subscribe({
         next: (res) => {
@@ -102,17 +117,19 @@ export class Documents implements OnInit {
         }
       });
     }
-    
   }
 
-  //paging 
+  // paging & url params
   private cleanParams() {
     return {
       keyword: this.keyword ? this.keyword : null,
       sortBy: this.sortBy,
-      sortDirection: this.sortDirection
+      sortDirection: this.sortDirection,
+      status: this.statusFilter !== 'all' ? this.statusFilter : null,
+      type: this.typeFilter !== 'all' ? this.typeFilter : null
     };
   }
+
   goToPage(page: number | string): void {
     if (typeof page === 'number' && page >= 1 && page <= this.pagedResult.totalPage) {
       this.router.navigate(['/documents/page', page], { queryParams: this.cleanParams() });
@@ -144,7 +161,7 @@ export class Documents implements OnInit {
     this.pages = pages;
   }
 
-  //sort and search
+  // sort and search
   sort(column: string): void {
     if (this.sortBy === column) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -154,11 +171,23 @@ export class Documents implements OnInit {
     }
     this.router.navigate(['/documents/page/1'], { queryParams: this.cleanParams() });
   }
+
   search(): void {
     this.router.navigate(['/documents/page/1'], { queryParams: this.cleanParams() });
   }
+
+  // Filter change handlers
+  statusFilterChange(event: any): void {
+    this.statusFilter = event.target.value;
+    this.router.navigate(['/documents/page/1'], { queryParams: this.cleanParams() });
+  }
+
+  typeFilterChange(event: any): void {
+    this.typeFilter = event.target.value;
+    this.router.navigate(['/documents/page/1'], { queryParams: this.cleanParams() });
+  }
   
-  //action
+  // action
   checkRole() {
     if (!this.role) {
       this.isManagerOrAdmin  = false;
@@ -167,6 +196,7 @@ export class Documents implements OnInit {
     const roles = Array.isArray(this.role) ? this.role : [this.role];
     this.isManagerOrAdmin = roles.some(r => r.toUpperCase() === 'SYSTEM_ADMIN' || r.toUpperCase() === 'WAREHOUSE_MANAGER' || r.toUpperCase() === 'APPROVER');
   }
+
   approveDoc(id: string, code: string): void {
     if (confirm(`Bạn có chắc chắn muốn DUYỆT phiếu [${code}] không?`)) {
       this.isLoading = true;
@@ -182,6 +212,7 @@ export class Documents implements OnInit {
       });
     }
   }
+
   rejectDoc(id: string, code: string): void {
     const reason = prompt(`Nhập lý do từ chối cho phiếu [${code}]:`);
     if (reason === null) return;
@@ -201,6 +232,7 @@ export class Documents implements OnInit {
       }
     });
   }
+
   cancelDoc(id: string, code: string): void{
     if (confirm(`Bạn có chắc chắn muốn TỪ CHỐI phiếu [${code}] không?`)) {
       this.isLoading = true;
@@ -216,6 +248,7 @@ export class Documents implements OnInit {
       });
     }
   }  
+
   getTypeName(type: DocumentType): string {
     const types: Record<number, string> = {
       1: 'Nhập kho', 
@@ -228,17 +261,19 @@ export class Documents implements OnInit {
     return types[type] || 'Khác';
   }
 
-  //child component
+  // child component
   openDetail(id: string): void {
     this.selectedDocumentId = id;
     this.isDocumentDetailOpen = true;
     this.cdr.detectChanges();
   }
+
   closeDetail(): void {
     this.selectedDocumentId = null;
     this.isDocumentDetailOpen = false;
     this.cdr.detectChanges();
   }
+
   handleDetail(event: { id: string, newStatus: DocumentStatus }): void {
     const index = this.pagedResult.items.findIndex(doc => doc.id === event.id);
     if (index !== -1) {
@@ -246,5 +281,4 @@ export class Documents implements OnInit {
       this.cdr.detectChanges();
     }
   }  
-
 }

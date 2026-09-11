@@ -71,13 +71,13 @@ export class TransferComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.warehouseId) {
-      this.loadInventoryData();
+      this.loadAllData();
       this.loadWarehouse();
     }
     this.addEmptyLine();
   }
 
-  private loadInventoryData(): void {
+  private loadAllData(): void {
     const request: WarehouseDetailRequest = {
       warehouseId: this.warehouseId,
       pageNumber: 1,

@@ -135,6 +135,8 @@
       if (request.keyword) params = params.set('keyword', request.keyword);
       if (request.sortBy) params = params.set('sortBy', request.sortBy);
       if (request.sortDirection) params = params.set('sortDirection', request.sortDirection);
+      if (request.status && request.status !== 'all') params = params.set('status', request.status);
+      if (request.type && request.type !== 'all') params = params.set('type', request.type);
 
       return params;
     }

@@ -24,15 +24,16 @@ export class DashBoard implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly userService = inject(UserService);
 
-  //filter
+  // filter
   keyword: string = '';
+  statusFilter: string = 'all';
   sortDirection: 'desc' | 'asc' = 'desc'; 
   sortBy: string = 'createdAt'; 
   
   //paging
   pages: (number | string)[] = [];
   isLoading: boolean = false;
-
+  
   //child component
   isUserToWarehouseOpen: boolean = false;
   selectedWarehouse: WarehouseDTO | null = null;
@@ -55,15 +56,13 @@ export class DashBoard implements OnInit {
     this.role = this.authService.getRoleFromToken();
     this.checkRole();
 
-    combineLatest([
-      this.route.paramMap,
-      this.route.queryParamMap
-    ])
+    combineLatest([this.route.paramMap, this.route.queryParamMap])
     .subscribe(([params, queryParams]) => {
       const pageParam = params.get('page');
       const parsedPage = pageParam ? parseInt(pageParam, 10) : 1;
       this.pagedResult.pageNumber = !isNaN(parsedPage) && parsedPage > 0 ? parsedPage : 1;
       this.keyword = queryParams.get('keyword') || '';
+      this.statusFilter = queryParams.get('status') || 'all';
       this.sortBy = queryParams.get('sortBy') || 'createdAt';
       this.sortDirection = (queryParams.get('sortDirection') as 'asc' | 'desc') || 'desc';
       this.loadWarehouses();
@@ -72,12 +71,13 @@ export class DashBoard implements OnInit {
   
   loadWarehouses() {
     this.isLoading = true;
-    const request: PagingRequestWarehouse = {
+    const request: any = {
       pageNumber: this.pagedResult.pageNumber,
       pageSize: this.pagedResult.pageSize,
       keyword: this.keyword,
       sortBy: this.sortBy,
-      sortDirection: this.sortDirection        
+      sortDirection: this.sortDirection,
+      status: this.statusFilter !== 'all' ? this.statusFilter : undefined    
     };
 
     this.warehouseService.getall(request).subscribe({
@@ -100,7 +100,8 @@ export class DashBoard implements OnInit {
     return {
       keyword: this.keyword ? this.keyword : null,
       sortBy: this.sortBy,
-      sortDirection: this.sortDirection
+      sortDirection: this.sortDirection,
+      status: this.statusFilter !== 'all' ? this.statusFilter : null 
     };
   }
 
@@ -135,7 +136,7 @@ export class DashBoard implements OnInit {
     this.pages = pages;
   }
 
-  // sort, search
+  // filter, sort, search
   sort(column: string): void {
     if (this.sortBy === column) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -148,8 +149,12 @@ export class DashBoard implements OnInit {
   search(): void {
     this.router.navigate(['/dashboard/page/1'], { queryParams: this.cleanParams() });
   }
+  statusFilterChange(event: any): void {
+    this.statusFilter = event.target.value;
+    this.router.navigate(['/dashboard/page/1'], { queryParams: this.cleanParams() });
+  }
   
-  //action
+  // action
   checkRole() {
     if (!this.role) {
       this.isAdminOrManager = false;
@@ -245,7 +250,5 @@ export class DashBoard implements OnInit {
         console.error(err);
       }
     });
-    
   }  
-
 }

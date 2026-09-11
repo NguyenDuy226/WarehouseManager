@@ -5,8 +5,8 @@ import { PagedResult } from '../Auth Service/user-servive';
 
 
 export enum WarehouseEntityStatus {
-    Inactive = 0,
-    Active = 1
+  Inactive = 0,
+  Active = 1
 }
 export interface WarehouseDTO{
   id: string,
@@ -34,6 +34,7 @@ export interface PagingRequestWarehouse{
   keyword?: string | null;
   sortBy?: string | null;        
   sortDirection?: string | null; 
+  status?: string;
 }
 
 @Injectable({
@@ -56,6 +57,9 @@ export class WarehouseService {
     }
     if (request.sortDirection) {
       params = params.set('sortDirection', request.sortDirection);
+    }
+    if (request.status && request.status !== 'all') {
+      params = params.set('status', request.status);
     }
     return this.http.get<PagedResult<WarehouseDTO>>(this.apiUrl, { params });
   }

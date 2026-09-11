@@ -32,15 +32,29 @@ namespace Warehouse.Infrastructure.Services.Document
         public async Task<PagedResult<DocumentDTO>> GetAllAsync(PagingRequest request)
         {
             var query = _context.Set<StockDocument>().AsNoTracking();
+            //search
             if (!string.IsNullOrWhiteSpace(request.Keyword))
             {
                 var keyword = request.Keyword.Trim().ToLower();
                 query = query.Where(x => x.Code.ToLower().Contains(keyword));
             }
-
+            if (!string.IsNullOrWhiteSpace(request.Type) && request.Type.ToLower() != "all")
+            {
+                if (int.TryParse(request.Type, out int typeValue))
+                {
+                    query = query.Where(x => (int)x.Type == typeValue);
+                }
+            }
+            if (!string.IsNullOrWhiteSpace(request.Status) && request.Status.ToLower() != "all")
+            {
+                if (int.TryParse(request.Status, out int statusValue))
+                {
+                    query = query.Where(x => (int)x.Status == statusValue);
+                }
+            }
             var totalCount = await query.CountAsync();
             var sortDirection = request.SortDirection?.ToLower() == "asc" ? "asc" : "desc";
-            var sortBy = request.SortBy?.ToLower() ?? "createat";
+            var sortBy = request.SortBy?.ToLower() ?? "createdat";
 
             query = sortBy switch
             {
@@ -53,8 +67,8 @@ namespace Warehouse.Infrastructure.Services.Document
             var pageNumber = Math.Max(1, request.PageNumber);
             var pageSize = request.PageSize > 0 ? request.PageSize : 10;
 
+            //paging
             var items = await query
-                .Where(t => t.Status != 0)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(t => new DocumentDTO
@@ -76,6 +90,7 @@ namespace Warehouse.Infrastructure.Services.Document
                 PageSize = pageSize
             };
         }
+       
         public async Task<PagedResult<DocumentDTO>> GetByUserAsync(Guid userId, PagingRequest request)
         {
             if (userId == Guid.Empty) throw new ArgumentException("userId cannot be empty");
@@ -90,11 +105,25 @@ namespace Warehouse.Infrastructure.Services.Document
                 var keyword = request.Keyword.Trim().ToLower();
                 query = query.Where(x => x.Code.ToLower().Contains(keyword));
             }
+            if (!string.IsNullOrWhiteSpace(request.Type) && request.Type.ToLower() != "all")
+            {
+                if (int.TryParse(request.Type, out int typeValue))
+                {
+                    query = query.Where(x => (int)x.Type == typeValue);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Status) && request.Status.ToLower() != "all")
+            {
+                if (int.TryParse(request.Status, out int statusValue))
+                {
+                    query = query.Where(x => (int)x.Status == statusValue);
+                }
+            }
 
             var totalCount = await query.CountAsync();
             var sortDirection = request.SortDirection?.ToLower() == "asc" ? "asc" : "desc";
-            var sortBy = request.SortBy?.ToLower() ?? "createat";
-
+            var sortBy = request.SortBy?.ToLower() ?? "createdat";
             query = sortBy switch
             {
                 "code" => sortDirection == "asc" ? query.OrderBy(x => x.Code) : query.OrderByDescending(x => x.Code),
@@ -135,6 +164,7 @@ namespace Warehouse.Infrastructure.Services.Document
                 .AsNoTracking()
                 .Include(x => x.Warehouse)
                 .Include("Supplier")
+                .Include("ToWarehouse")
                 .Include(x => x.Lines)
                     .ThenInclude(l => l.Material)
                         .ThenInclude(u => u!.UnitOfMeasure)
@@ -171,7 +201,8 @@ namespace Warehouse.Infrastructure.Services.Document
                 Receiver = item is IssueDocument ? ((IssueDocument)item).Receiver : null,
                 //transfer
                 ToWarehouseId = item is TransferDocument ? ((TransferDocument)item).ToWarehouseId : null,
-                
+                ToWarehouseName = item is TransferDocument transfer && transfer.ToWarehouse != null ? transfer.ToWarehouse.Name : string.Empty,
+               
                 Lines = item.Lines
                         .Where(l => !l.IsRemoved)
                         .Select(l => new DocumentLineDTO
@@ -374,12 +405,13 @@ namespace Warehouse.Infrastructure.Services.Document
         private void LineAction(StockDocument document, List<DocumentLineCreateDTO> linesDto)
         {
             linesDto ??= new List<DocumentLineCreateDTO>();
-            var incomingIds = linesDto
+            var incomingId = linesDto
+                .Where(l => l.Id.HasValue && l.Id.Value != Guid.Empty) 
                 .Select(l => l.Id!.Value)
                 .ToList();
 
             var linesToRemove = document.Lines
-                .Where(l => !l.IsRemoved && !incomingIds.Contains(l.Id))
+                .Where(l => !l.IsRemoved && !incomingId.Contains(l.Id))
                 .ToList(); 
             foreach (var line in linesToRemove)
             {
@@ -390,17 +422,16 @@ namespace Warehouse.Infrastructure.Services.Document
             {
                 if (dto.Id == null || dto.Id == Guid.Empty)
                 {
-                    document.AddOrUpdateLine(dto.MaterialId, dto.Quantity, dto.UnitPrice);
+                    var newLine = new StockDocumentLine(document.Id, dto.MaterialId, dto.Quantity, dto.UnitPrice);
+                    document.Lines.Add(newLine); 
+                    _context.Entry(newLine).State = EntityState.Added;           
                 }
                 else
                 {
                     var existingLine = document.Lines.FirstOrDefault(l => l.Id == dto.Id);
                     if (existingLine != null)
                     {
-                        if (existingLine != null)
-                        {
-                            existingLine.Update(dto.MaterialId, dto.Quantity, dto.UnitPrice);
-                        }
+                        existingLine.Update(dto.MaterialId, dto.Quantity, dto.UnitPrice);
                     }
                 }
             }

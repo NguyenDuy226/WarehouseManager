@@ -45,10 +45,7 @@ export class ManagerDashboard implements OnInit {
   
 
   ngOnInit(): void {
-    combineLatest([
-      this.route.paramMap,
-      this.route.queryParamMap
-    ])
+    combineLatest([this.route.paramMap, this.route.queryParamMap])
     .subscribe(([params, queryParams]) => {
       const pageParam = params.get('page');
       const parsedPage = pageParam ? parseInt(pageParam, 10) : 1;

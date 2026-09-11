@@ -20,6 +20,7 @@ export interface PagingRequest {
   status?: string | null;        
   role?: string | null;          
   sortBy?: string | null;        
+  type?: string | null;
   sortDirection?: string | null; 
 }
 

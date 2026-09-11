@@ -247,7 +247,7 @@ namespace Warehouse.Domain.Entities
             ValidInput(quantity, unitPrice);
             Quantity = Math.Round(quantity, 4);
             UnitPrice = Math.Round(unitPrice, 4);
-            IsRemoved = false; 
+            IsRemoved = false;
         }
         
         public void MarkAsRemoved()

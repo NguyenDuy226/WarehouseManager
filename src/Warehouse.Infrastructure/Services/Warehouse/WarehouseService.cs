@@ -3,6 +3,7 @@ using Warehouse.Application.DTO.Paging;
 using Warehouse.Application.DTO.Warehouse;
 using Warehouse.Application.Interfaces;
 using Warehouse.Domain.Entities;
+using Warehouse.Domain.Inventory.Enums;
 using Warehouse.Infrastructure.Data;
 
 namespace Warehouse.Infrastructure.Services.Warehouse
@@ -26,10 +27,22 @@ namespace Warehouse.Infrastructure.Services.Warehouse
                var keyword = request.Keyword.Trim().ToLower(); 
                 query = query.Where(x => 
                     (x.Code != null && x.Code.ToLower().Contains(keyword)) || 
-                    (x.Name != null && x.Name.ToLower().Contains(keyword)) || 
-                    (x.Manager != null && x.Manager.ToLower().Contains(keyword))
+                    (x.Name != null && x.Name.ToLower().Contains(keyword)) 
                 );
             }
+            if (!string.IsNullOrWhiteSpace(request.Status) && request.Status.ToLower() != "all")
+            {
+                var status = request.Status.ToLower().Trim();
+                if (status == "active")
+                {
+                    query = query.Where(x => x.Status == EntityStatus.Active);
+                }
+                else if (status == "inactive")
+                {
+                    query = query.Where(x => x.Status == EntityStatus.Inactive);
+                }
+            }
+           
             var totalCount = await query.CountAsync();
             var sortDirection = request.SortDirection?.ToLower() == "asc" ? "asc" : "desc";
             var sortBy = request.SortBy?.ToLower() ?? "createdat";

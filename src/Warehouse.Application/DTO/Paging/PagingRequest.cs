@@ -11,6 +11,7 @@ namespace Warehouse.Application.DTO.Paging
         }
         public string? Keyword { get; set; }
         public string? Status { get; set; }
+        public string? Type { get; set; }
         public string? Role { get; set; }
         public string? SortBy { get; set; } = "createdAt"; 
         public string? SortDirection { get; set; } = "desc";

@@ -23,9 +23,9 @@ export class RoleModalComponent implements OnChanges {
   availableRoles = [
     { value: 'WAREHOUSE_MANAGER', label: 'Quản lý kho' },
     { value: 'WAREHOUSE_CLERK', label: 'Nhân viên kho' },
-    // { value: 'APPROVER', label: 'Người phê duyệt' },
-    // { value: 'REQUESTER', label: 'Người yêu cầu' },
-    // { value: 'AUDITOR', label: 'Kiểm toán viên' },
+    { value: 'APPROVER', label: 'Người phê duyệt' },
+    { value: 'REQUESTER', label: 'Người yêu cầu' },
+    { value: 'AUDITOR', label: 'Kiểm toán viên' },
     { value: 'USER', label: 'Nhân viên (Cơ bản)' }
   ];
 
