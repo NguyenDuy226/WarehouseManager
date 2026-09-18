@@ -18,7 +18,7 @@ public class AuthService
     private readonly IHttpContextAccessor _httpContextAccessor; 
     private readonly IConfiguration _config;
     private readonly CodeGenerator _codeGenerator;
-    public AuthService(UserManager<AppUser> userManager, CreateToken createToken, WarehouseDbContext context,IHttpContextAccessor httpContextAccessor, IConfiguration config, CodeGenerator code)
+    public AuthService(UserManager<AppUser> userManager, CreateToken createToken, WarehouseDbContext context, IHttpContextAccessor httpContextAccessor, IConfiguration config, CodeGenerator code)
     {
         _userManager = userManager;
         _createToken = createToken;

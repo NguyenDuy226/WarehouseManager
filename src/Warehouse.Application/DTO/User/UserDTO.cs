@@ -10,5 +10,6 @@ namespace Warehouse.Application.DTO.User
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public IList<string> Roles { get; set; } = new List<string>();
+        public List<UserWarehouseDTO> Warehouses { get; set; } = new List<UserWarehouseDTO>();
     }
 }

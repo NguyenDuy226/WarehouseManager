@@ -73,7 +73,7 @@ namespace Warehouse.Application.Services
             {
                 return (400, new { message = "invalid role for warehouse" });
             }
-            var warehouses = dto.Select(d => d.WarehouseId).ToList();
+            var warehouses = dto.Select(d => Guid.Parse(d.WarehouseId)).ToList();
 
             var existPer = await _context.WarehousePermissions
                 .Where(t => t.UserId == userId)
@@ -144,7 +144,7 @@ namespace Warehouse.Application.Services
             }
             var warehouseIdStr = warehouseId.ToString();
             var existPermissions = await _context.WarehousePermissions
-                .Where(t => t.WarehouseId == warehouseIdStr)
+                .Where(t => t.WarehouseId.ToString() == warehouseIdStr)
                 .ToListAsync();
             foreach (var item in existPermissions)
             {
@@ -156,7 +156,7 @@ namespace Warehouse.Application.Services
             {
                 var newPermissions = newUserIds.Select(id => new WarehousePermission
                 {
-                    WarehouseId = warehouseIdStr,
+                    WarehouseId = warehouseId,
                     UserId = id,
                     IsRemoved = false
                 });
@@ -352,18 +352,30 @@ namespace Warehouse.Application.Services
             
         public async Task<UserDTO?> GetByIdAsync(Guid id)
         {
-            var item = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == id);
-            if (item == null) return null;
-            var roles = await _userManager.GetRolesAsync(item);
-            
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null) return null;
+            var roles = await _userManager.GetRolesAsync(user);
+            var warehouses = await _context.WarehousePermissions
+                .Include(wp => wp.Warehouse)
+                .Where(wp => wp.UserId == id && wp.IsRemoved == false && wp.Warehouse != null)
+                .Select(wp => new UserWarehouseDTO
+                {
+                    Id = wp.WarehouseId,
+                    Code = wp.Warehouse!.Code ?? string.Empty,
+                    Name = wp.Warehouse!.Name ?? string.Empty,
+                    Status = wp.Warehouse!.Status
+                })
+                .ToListAsync();
             return new UserDTO
             {
-                Id = item.Id,
-                UserName = item.UserName ?? string.Empty,
-                Email = item.Email ?? string.Empty,
-                Name = item.Name ?? string.Empty,
-                IsActive = item.IsActive,
-                Roles = roles
+                Id = user.Id,
+                UserName = user.UserName ?? string.Empty,
+                Email = user.Email ?? string.Empty,
+                Name = user.Name ?? string.Empty,
+                CreatedAt = user.CreatedAt,
+                IsActive = user.IsActive,
+                Roles = roles,
+                Warehouses = warehouses
             };
         }
     
@@ -371,17 +383,17 @@ namespace Warehouse.Application.Services
         {
             return await _context.WarehousePermissions
                 .Where(wp => wp.UserId == userId && wp.IsRemoved == false)
-                .Select(wp => wp.WarehouseId)
+                .Select(wp => wp.WarehouseId.ToString())
                 .ToListAsync();
         }
         
         public async Task<List<string>> GetWarehouUsersAsync(Guid warehouseId)
         {
             return await _context.WarehousePermissions
-                .Where(wp => wp.WarehouseId == warehouseId.ToString() && !wp.IsRemoved)
+                .Where(wp => wp.WarehouseId == warehouseId && !wp.IsRemoved)
                 .Select(wp => wp.UserId.ToString()) 
                 .ToListAsync();
         }
-                
+
     }
 }

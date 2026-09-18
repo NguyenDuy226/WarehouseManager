@@ -64,8 +64,6 @@ export class Documents implements OnInit {
       this.keyword = queryParams.get('keyword') || '';
       this.sortBy = queryParams.get('sortBy') || 'createdAt';
       this.sortDirection = (queryParams.get('sortDirection') as 'asc' | 'desc') || 'desc';
-      
-      // Lấy trạng thái và loại phiếu từ URL
       this.statusFilter = queryParams.get('status') || 'all';
       this.typeFilter = queryParams.get('type') || 'all';
 
@@ -76,7 +74,6 @@ export class Documents implements OnInit {
   loadDocuments() {
     this.isLoading = true;
     
-    // Ép kiểu 'any' tạm thời để gửi thêm status và type xuống Service
     const request: any = {
       pageNumber: this.pagedResult.pageNumber,
       pageSize: this.pagedResult.pageSize,
@@ -119,7 +116,7 @@ export class Documents implements OnInit {
     }
   }
 
-  // paging & url params
+  // paging, url params
   private cleanParams() {
     return {
       keyword: this.keyword ? this.keyword : null,

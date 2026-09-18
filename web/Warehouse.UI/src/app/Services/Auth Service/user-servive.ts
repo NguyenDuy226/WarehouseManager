@@ -2,6 +2,12 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
+export interface UserWarehouseDTO {
+  id: string;
+  code: string;
+  name: string;
+  status: number;
+}
 export interface UserDTO {
   id: string;
   code: string
@@ -11,6 +17,7 @@ export interface UserDTO {
   isActive: boolean;
   createdAt?: string | Date;  
   roles?: string[];
+  warehouses?: UserWarehouseDTO[];
 }
 
 export interface PagingRequest {
@@ -50,6 +57,8 @@ export interface WarehouseRequestDTO {
 export interface UsersToWarehouseDTO {
   userId: string;
 }
+
+
 
 @Injectable({
   providedIn: 'root',

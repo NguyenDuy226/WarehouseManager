@@ -27,7 +27,7 @@ namespace Warehouse.Api.Controllers
         }
 
         [HttpGet("{userId:guid}")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize]
         public async Task<IActionResult> GetById(Guid userId)
         {
             var result = await _userService.GetByIdAsync(userId);
@@ -89,7 +89,7 @@ namespace Warehouse.Api.Controllers
         }
 
         [HttpGet("{userId:guid}/warehouses")]
-        [Authorize(Roles = "SYSTEM_ADMIN,WAREHOUSE_MANAGER")]
+        [Authorize]
         public async Task<IActionResult> GetUserWarehouses(Guid userId)
         {
             var result = await _userService.GetUserWarehousesAsync(userId);
