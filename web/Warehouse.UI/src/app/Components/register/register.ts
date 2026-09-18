@@ -24,7 +24,6 @@ export class Register implements OnInit {
     return this.registerForm.controls; 
   }
 
-  // Các hàm helper để check điều kiện mật khẩu phục vụ giao diện HTML
   hasMinLength(): boolean {
     return (this.f['Password'].value || '').length >= 6;
   }
@@ -37,7 +36,6 @@ export class Register implements OnInit {
   hasNumeric(): boolean {
     return /[0-9]/.test(this.f['Password'].value || '');
   }
-  // Hàm helper kiểm tra ký tự đặc biệt mới
   hasSpecialChar(): boolean {
     return /[!@#$%^&*(),.?":{}|<>_\-+~`[\]\/\\;']/.test(this.f['Password'].value || '');
   }
@@ -54,7 +52,6 @@ export class Register implements OnInit {
     });
   }
 
-  // Custom Validator cập nhật thêm điều kiện kiểm tra ký tự đặc biệt
   static complexPasswordValidator(control: AbstractControl): ValidationErrors | null {
     const value = control.value || '';
     const hasUpperCase = /[A-Z]/.test(value);

@@ -3,18 +3,7 @@
         
         <!-- left -->
         <div class="w-full lg:w-5/12 xl:w-4/12 bg-white flex flex-col justify-center p-8 sm:p-12 z-10 relative">
-            
-            <!-- Logo neo ở góc trên cùng bên trái -->
-            <!-- <div class="absolute top-6 left-6 sm:top-8 sm:left-10 flex items-center gap-3 cursor-pointer pt-1">
-                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-200">
-                    <svg class="w-6 h-6 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21v-9m0 0-9-5m9 5 9-5M3 10.667v4.666a2 2 0 0 0 1 1.732l7 4.041a2 2 0 0 0 2 0l7-4.041a2 2 0 0 0 1-1.732v-4.666m-18 0 7.2-4.157a2 2 0 0 1 2 0L21 10.667"/>
-                    </svg>
-                </div>
-                <span class="text-xl font-bold text-gray-900 tracking-tight">Warehouse Manager</span>
-            </div> -->
-
-            <!-- Header  -->
+            <!-- header  -->
             <div class="mb-5 mt-8 sm:mt-4">
                 <h1 class="font-extrabold text-gray-900 text-3xl tracking-tight text-center lg:text-left pl-1">Đăng nhập</h1>
             </div>
@@ -22,7 +11,7 @@
             <!-- form -->
             <div class="w-full">
                 <form [formGroup]="loginForm" (ngSubmit)="summit()" class="flex flex-col">
-                    <!-- Email -->
+                    <!-- email -->
                     <div>
                         <input formControlName="Email" type="email" placeholder="Email" class="w-full rounded-xl p-4 bg-gray-50 border border-gray-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
 
@@ -38,7 +27,7 @@
                         }
                     </div>
 
-                    <!-- Pass (Thu hẹp khoảng cách mt-4) -->
+                    <!-- pass-->
                     <div class="mt-4">
                         <div class="relative">
                             <input formControlName="Password"

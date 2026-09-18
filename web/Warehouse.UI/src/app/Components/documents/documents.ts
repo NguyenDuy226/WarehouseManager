@@ -25,7 +25,6 @@ export class Documents implements OnInit {
   sortDirection: 'desc' | 'asc' = 'desc'; 
   sortBy: string = 'createdAt'; 
 
-  // Bổ sung biến cho 2 bộ lọc
   statusFilter: string = 'all'; 
   typeFilter: string = 'all'; 
 
@@ -173,7 +172,6 @@ export class Documents implements OnInit {
     this.router.navigate(['/documents/page/1'], { queryParams: this.cleanParams() });
   }
 
-  // Filter change handlers
   statusFilterChange(event: any): void {
     this.statusFilter = event.target.value;
     this.router.navigate(['/documents/page/1'], { queryParams: this.cleanParams() });
